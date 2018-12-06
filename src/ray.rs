@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 use image::Rgb;
+
+use light::LightSource;
 use objects::World;
 use utils::Vec3;
-
-use std::f32::INFINITY;
-use std::rc::Rc;
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -13,7 +15,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn hit(&self, world: &World) -> Option<HitPoint> {
-        world
+        world.objects
             .iter()
             .filter_map(|obj| obj.reflect(self).map(|ray| (obj.clone(), ray)))
             .min_by(|a, b| {
@@ -21,14 +23,14 @@ impl Ray {
                 let dist_b = self.pos.distance(b.1.pos);
                 dist_a.partial_cmp(&dist_b).unwrap()
             })
-            .map(|(obj, ray)| HitPoint { in_ray: ray, obj })
+            .map(|(obj, ray)| HitPoint { out_ray: ray, obj })
     }
 }
 
-pub trait Reflectable {
+pub trait Reflectable: Debug {
     fn reflect(&self, ray: &Ray) -> Option<Ray>;
     fn decay(&self) -> f32;
-    fn color(&self, reflect_ray: &Ray) -> Rgb<u8>;
+    fn color(&self, point: &HitPoint, light: &LightSource) -> Rgb<u8>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -42,6 +44,8 @@ impl Camera {
     /// adjust this camera to look at `point`.
     pub fn look(&mut self, point: Vec3) {
         self.sight = (point - self.pos).normal();
+        let right = self.right();
+        self.up = right.cross(self.sight).normal();
     }
 
     /// return up direction of this camera.
@@ -77,31 +81,32 @@ impl Camera {
 
     /// create a camera which is at `pos` and look at `point`.
     pub fn new(pos: Vec3, point: Vec3) -> Camera {
-        Camera {
+        let mut camera = Camera {
             pos,
             up: Vec3::new(0., 0., 1.),
-            sight: (point - pos).normal(),
-        }
+            sight: Vec3::new(0., 0., 1.),
+        };
+        camera.look(point);
+        camera
     }
 }
 
 #[derive(Clone)]
 pub struct HitPoint {
-    pub in_ray: Ray,
+    pub out_ray: Ray,
     pub obj: Rc<dyn Reflectable>,
 }
 
 impl HitPoint {
     pub fn angle(&self, norm: Vec3) -> f32 {
-        self.in_ray.dir.cross(norm).len().asin()
+        self.out_ray.dir.cross(norm).len().asin()
     }
 
     pub fn reflect_ray(&self) -> Ray {
-        // there must be a reflected ray since its a valid hit point.
-        self.obj.reflect(&self.in_ray).unwrap()
+        self.out_ray
     }
 
     pub fn position(&self) -> Vec3 {
-        self.in_ray.pos
+        self.out_ray.pos
     }
 }

@@ -19,8 +19,8 @@ impl Vec3 {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
 
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Vec3 { x, y, z }
+    pub fn new<T: Into<f32>>(x: T, y: T, z: T) -> Self {
+        Vec3 { x: x.into(), y: y.into(), z: z.into(), }
     }
 
     pub fn cross(self, rhs: Self) -> Vec3 {

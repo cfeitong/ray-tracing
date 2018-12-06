@@ -1,5 +1,6 @@
 use image::{Pixel, Rgb};
 use light::{LightSource, PointLight};
+use ray::HitPoint;
 use ray::{Ray, Reflectable};
 use std::rc::Rc;
 use std::slice::{Iter, IterMut};
@@ -39,15 +40,15 @@ impl Square {
             return false;
         }
 
-        if (-0.5 < a || relative_eq!(-0.5, a))
+        (-0.5 < a || relative_eq!(-0.5, a))
             && (a < 0.5 || relative_eq!(a, 0.5))
             && (-0.5 < b || relative_eq!(-0.5, b))
             && (b < 0.5 || relative_eq!(b, 0.5))
-        {
-            true
-        } else {
-            false
-        }
+    }
+
+    pub fn is_in_plane(&self, p: Vec3) -> bool {
+        let t = self.center - p;
+        relative_eq!(t.dot(self.normal()), 0.)
     }
 
     pub fn get_corners(&self) -> Vec<Vec3> {
@@ -73,10 +74,6 @@ impl Reflectable for Square {
         let t = (a - ray.pos).dot(n) / (ray.dir.dot(n));
         let p = ray.pos + ray.dir * t; // hit point
 
-        //        debug!("p {:?}, {:?}", p, self);
-        //        debug!("n {:?}, {:?}", n, ray);
-        //        debug!("t {:?}", t);
-
         if t < 0. || !self.contain(p) || relative_eq!(n.dot(ray.dir), 0.) {
             return None;
         }
@@ -93,7 +90,7 @@ impl Reflectable for Square {
         1.
     }
 
-    fn color(&self, reflect_ray: &Ray) -> Rgb<u8> {
+    fn color(&self, point: &HitPoint, light: &LightSource) -> Rgb<u8> {
         *Rgb::from_slice(&[255, 0, 0])
     }
 }
@@ -107,7 +104,7 @@ pub struct Cube {
 }
 
 impl Cube {
-    fn planes(&self) -> Vec<Square> {
+    fn squares(&self) -> Vec<Square> {
         let x = self.x.normal();
         let y = self.y.normal();
         let z = x.cross(y).normal();
@@ -158,7 +155,7 @@ impl Cube {
 impl Reflectable for Cube {
     fn reflect(&self, ray: &Ray) -> Option<Ray> {
         use std::cmp::Ordering;
-        self.planes()
+        self.squares()
             .iter()
             .filter_map(|plane| plane.reflect(ray))
             .min_by(|r1, r2| {
@@ -172,7 +169,7 @@ impl Reflectable for Cube {
         1.
     }
 
-    fn color(&self, reflect_ray: &Ray) -> Rgb<u8> {
+    fn color(&self, point: &HitPoint, light: &LightSource) -> Rgb<u8> {
         *Rgb::from_slice(&[255, 0, 0])
     }
 }
@@ -237,23 +234,5 @@ impl World {
 
     pub fn iter_mut(&mut self) -> IterMut<Rc<dyn Reflectable>> {
         self.objects.iter_mut()
-    }
-}
-
-impl IntoIterator for World {
-    type Item = Rc<dyn Reflectable>;
-    type IntoIter = <Vec<Self::Item> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.objects.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a World {
-    type Item = &'a Rc<dyn Reflectable>;
-    type IntoIter = <&'a Vec<Rc<dyn Reflectable>> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        (&self.objects).into_iter()
     }
 }
