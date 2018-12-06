@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use image::Rgb;
-
 use light::LightSource;
 use objects::World;
 use std::fmt::Debug;

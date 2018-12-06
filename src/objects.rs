@@ -1,9 +1,6 @@
-use image::{Pixel, Rgb};
-use light::{LightSource, PointLight};
-use ray::HitPoint;
+use light::LightSource;
 use ray::{Ray, Reflectable};
 use std::rc::Rc;
-use std::slice::{Iter, IterMut};
 use utils::Vec3;
 
 #[derive(Debug)]
@@ -100,6 +97,10 @@ pub struct Cube {
 }
 
 impl Cube {
+    pub fn new(center: Vec3, x: Vec3, y: Vec3, len: f32) -> Self {
+        Cube { center, x, y, len }
+    }
+
     fn squares(&self) -> Vec<Square> {
         let x = self.x.normalize();
         let y = self.y.normalize();
@@ -172,51 +173,18 @@ pub struct World {
 }
 
 impl World {
-    pub fn new() -> World {
-        let mut objects: Vec<Rc<dyn Reflectable>> = Vec::new();
-        const EDG_LEN: f32 = 2.;
-        objects.push(Rc::new(Square::from_points(
-            Vec3::new(-EDG_LEN / 2., EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., EDG_LEN / 2., EDG_LEN / 2.),
-        )));
-        objects.push(Rc::new(Square::from_points(
-            Vec3::new(EDG_LEN / 2., EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., -EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., -EDG_LEN / 2., EDG_LEN / 2.),
-        )));
-        objects.push(Rc::new(Square::from_points(
-            Vec3::new(-EDG_LEN / 2., -EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., -EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., -EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., -EDG_LEN / 2., EDG_LEN / 2.),
-        )));
-        objects.push(Rc::new(Square::from_points(
-            Vec3::new(-EDG_LEN / 2., EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., -EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., -EDG_LEN / 2., EDG_LEN / 2.),
-        )));
-        objects.push(Rc::new(Square::from_points(
-            Vec3::new(-EDG_LEN / 2., EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., -EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., -EDG_LEN / 2., EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., EDG_LEN / 2., EDG_LEN / 2.),
-        )));
-        objects.push(Rc::new(Square::from_points(
-            Vec3::new(-EDG_LEN / 2., EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(-EDG_LEN / 2., -EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., -EDG_LEN / 2., -EDG_LEN / 2.),
-            Vec3::new(EDG_LEN / 2., EDG_LEN / 2., -EDG_LEN / 2.),
-        )));
-        let mut lights = Vec::<Rc<dyn LightSource>>::new();
-        lights.push(Rc::new(PointLight::new(Vec3::new(2.0, 2., 2.))));
-        World { objects, lights }
+    pub fn empty() -> Self {
+        World {
+            objects: Vec::new(),
+            lights: Vec::new(),
+        }
     }
 
-    pub fn push(&mut self, obj: Rc<dyn Reflectable>) {
+    pub fn add_obj(&mut self, obj: Rc<dyn Reflectable>) {
         self.objects.push(obj);
+    }
+
+    pub fn add_light(&mut self, light: Rc<dyn LightSource>) {
+        self.lights.push(light);
     }
 }

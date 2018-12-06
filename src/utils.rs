@@ -1,6 +1,8 @@
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use image::{Rgb, Pixel};
+
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
     pub x: f32,
@@ -62,28 +64,10 @@ impl Vec3 {
     }
 }
 
-macro_rules! max {
-    ($a:expr) => {$a};
-    ($a:expr, $($b:expr)+) => {{
-        let t = max!($($b),*);
-        if $a > t {
-            $a
-        } else {
-            t
-        }
-    }}
-}
-
-macro_rules! min {
-    ($a:expr) => {$a};
-    ($a:expr, $($b:expr)+) => {{
-        let t = min!($($b),*);
-        if $a < t {
-            $a
-        } else {
-            t
-        }
-    }}
+macro_rules! vec3 {
+    ($x:expr, $y:expr, $z:expr) => {
+        $crate::utils::Vec3::new($x as f32, $y as f32, $z as f32)
+    };
 }
 
 impl Neg for Vec3 {
@@ -180,4 +164,38 @@ impl<T: Into<f32>> DivAssign<T> for Vec3 {
         self.y /= v;
         self.z /= v;
     }
+}
+
+macro_rules! max {
+    ($a:expr) => {$a};
+    ($a:expr, $($b:expr)+) => {{
+        let t = max!($($b),*);
+        if $a > t {
+            $a
+        } else {
+            t
+        }
+    }}
+}
+
+macro_rules! min {
+    ($a:expr) => {$a};
+    ($a:expr, $($b:expr)+) => {{
+        let t = min!($($b),*);
+        if $a < t {
+            $a
+        } else {
+            t
+        }
+    }}
+}
+
+
+pub type Color = Vec3;
+
+pub fn vec3_to_rgb(c: Color) -> Rgb<u8> {
+    let r = (255. * max!(0., min!(1., c.x))) as u8;
+    let g = (255. * max!(0., min!(1., c.y))) as u8;
+    let b = (255. * max!(0., min!(1., c.z))) as u8;
+    *Rgb::from_slice(&[r, g, b])
 }
