@@ -4,8 +4,8 @@ use image::Rgb;
 
 use light::LightSource;
 use objects::World;
-use utils::Vec3;
 use std::fmt::Debug;
+use utils::Vec3;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -15,22 +15,27 @@ pub struct Ray {
 
 impl Ray {
     pub fn hit(&self, world: &World) -> Option<HitPoint> {
-        world.objects
+        world
+            .objects
             .iter()
-            .filter_map(|obj| obj.reflect(self).map(|ray| (obj.clone(), ray)))
+            .filter_map(|obj| {
+                obj.reflect(self).map(|out_ray| HitPoint {
+                    obj: obj.clone(),
+                    out_ray,
+                    norm: self.dir.mid_vec(out_ray.dir),
+                })
+            })
             .min_by(|a, b| {
-                let dist_a = self.pos.distance(a.1.pos);
-                let dist_b = self.pos.distance(b.1.pos);
+                let dist_a = self.pos.distance(a.position());
+                let dist_b = self.pos.distance(b.position());
                 dist_a.partial_cmp(&dist_b).unwrap()
             })
-            .map(|(obj, ray)| HitPoint { out_ray: ray, obj })
     }
 }
 
 pub trait Reflectable: Debug {
     fn reflect(&self, ray: &Ray) -> Option<Ray>;
     fn decay(&self) -> f32;
-    fn color(&self, point: &HitPoint, light: &LightSource) -> Rgb<u8>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -43,9 +48,9 @@ pub struct Camera {
 impl Camera {
     /// adjust this camera to look at `point`.
     pub fn look(&mut self, point: Vec3) {
-        self.sight = (point - self.pos).normal();
+        self.sight = (point - self.pos).normalize();
         let right = self.right();
-        self.up = right.cross(self.sight).normal();
+        self.up = right.cross(self.sight).normalize();
     }
 
     /// return up direction of this camera.
@@ -55,7 +60,7 @@ impl Camera {
 
     /// return right direction of this camera.
     pub fn right(&self) -> Vec3 {
-        self.sight.cross(self.up).normal()
+        self.sight.cross(self.up).normalize()
     }
 
     /// emit needed ray through a 1 unit away square screen whose size is 2 unit.
@@ -72,7 +77,7 @@ impl Camera {
                 let point = left_up_corner - self.up() * fh + self.right() * fw;
                 let ray = Ray {
                     pos: self.pos,
-                    dir: (point - self.pos).normal(),
+                    dir: (point - self.pos).normalize(),
                 };
                 (w, h, ray)
             })
@@ -93,16 +98,35 @@ impl Camera {
 
 #[derive(Clone)]
 pub struct HitPoint {
-    pub out_ray: Ray,
-    pub obj: Rc<dyn Reflectable>,
+    out_ray: Ray,
+    obj: Rc<dyn Reflectable>,
+    norm: Vec3,
 }
 
 impl HitPoint {
-    pub fn angle(&self, norm: Vec3) -> f32 {
-        self.out_ray.dir.cross(norm).len().asin()
+    pub fn angle(&self) -> f32 {
+        self.out_ray.dir.dot(self.norm).acos()
     }
 
-    pub fn reflect_ray(&self) -> Ray {
+    pub fn out_dir(&self) -> Vec3 {
+        self.out_ray.dir.normalize()
+    }
+
+    pub fn in_dir(&self) -> Vec3 {
+        let out_dir = self.out_ray.dir.normalize();
+        let h = out_dir - out_dir.proj_to(self.norm);
+        out_dir.proj_to(self.norm) - h
+    }
+
+    pub fn object(&self) -> Rc<dyn Reflectable> {
+        self.obj.clone()
+    }
+
+    pub fn normal(&self) -> Vec3 {
+        self.norm.normalize()
+    }
+
+    pub fn reflected_ray(&self) -> Ray {
         self.out_ray
     }
 

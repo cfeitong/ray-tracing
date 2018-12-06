@@ -20,7 +20,11 @@ impl Vec3 {
     }
 
     pub fn new<T: Into<f32>>(x: T, y: T, z: T) -> Self {
-        Vec3 { x: x.into(), y: y.into(), z: z.into(), }
+        Vec3 {
+            x: x.into(),
+            y: y.into(),
+            z: z.into(),
+        }
     }
 
     pub fn cross(self, rhs: Self) -> Vec3 {
@@ -31,12 +35,20 @@ impl Vec3 {
         }
     }
 
-    pub fn normal(self) -> Vec3 {
+    pub fn normalize(self) -> Vec3 {
         self / self.len()
     }
 
-    pub fn len(&self) -> f32 {
+    pub fn len(self) -> f32 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
+    }
+
+    pub fn len2(self) -> f32 {
+        self.x.powi(2) + self.y.powi(2) + self.z.powi(2)
+    }
+
+    pub fn proj_to(self, rhs: Self) -> Self {
+        rhs.normalize() * self.dot(rhs.normalize())
     }
 
     pub fn distance(self, rhs: Self) -> f32 {
@@ -44,6 +56,34 @@ impl Vec3 {
         let Self { x, y, z } = v;
         (x * x + y * y + z * z).sqrt()
     }
+
+    pub fn mid_vec(self, rhs: Self) -> Self {
+        (self.normalize() + rhs.normalize()).normalize()
+    }
+}
+
+macro_rules! max {
+    ($a:expr) => {$a};
+    ($a:expr, $($b:expr)+) => {{
+        let t = max!($($b),*);
+        if $a > t {
+            $a
+        } else {
+            t
+        }
+    }}
+}
+
+macro_rules! min {
+    ($a:expr) => {$a};
+    ($a:expr, $($b:expr)+) => {{
+        let t = min!($($b),*);
+        if $a < t {
+            $a
+        } else {
+            t
+        }
+    }}
 }
 
 impl Neg for Vec3 {
