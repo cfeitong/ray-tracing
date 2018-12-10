@@ -18,7 +18,7 @@ pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
                     .map(|hit| {
                         let l1 = (hit.position() - ray.pos).len2();
                         let l2 = (point.position() - ray.pos).len2();
-                        l1+1e-3 >= l2 || relative_eq!(l1, l2) // replace magic number with epsilon
+                        l1 + 1e-3 >= l2 || relative_eq!(l1, l2) // replace magic number with epsilon
                     })
                     .unwrap_or(true)
             })

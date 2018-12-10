@@ -127,7 +127,6 @@ impl Add<Vec3> for f32 {
     }
 }
 
-
 impl AddAssign<Self> for Vec3 {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;

@@ -1,8 +1,7 @@
+use std::fmt::Debug;
 use std::rc::Rc;
 
-use light::LightSource;
 use objects::World;
-use std::fmt::Debug;
 use utils::Vec3;
 
 #[derive(Debug, Clone, Copy)]
