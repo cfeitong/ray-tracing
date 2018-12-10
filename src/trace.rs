@@ -13,9 +13,13 @@ pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
             .lights
             .iter()
             .filter(|&light| {
-                let mut ray = Ray::new(light.position(), point.position() - light.position());
+                let ray = Ray::new(light.position(), point.position() - light.position());
                 ray.hit(world)
-                    .map(|hit| relative_eq!(hit.position(), point.position()))
+                    .map(|hit| {
+                        let l1 = (hit.position() - ray.pos).len2();
+                        let l2 = (point.position() - ray.pos).len2();
+                        l1+1e-3 >= l2 || relative_eq!(l1, l2) // replace magic number with epsilon
+                    })
                     .unwrap_or(true)
             })
             .map(|light| render(&point, light))

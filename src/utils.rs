@@ -273,9 +273,9 @@ impl RelativeEq for Vec3 {
         epsilon: Self::Epsilon,
         max_relative: Self::Epsilon,
     ) -> bool {
-        f32::relative_eq(&self.x, &self.x, epsilon, max_relative)
-            && f32::relative_eq(&self.y, &self.y, epsilon, max_relative)
-            && f32::relative_eq(&self.z, &self.z, epsilon, max_relative)
+        f32::relative_eq(&self.x, &other.x, epsilon, max_relative)
+            && f32::relative_eq(&self.y, &other.y, epsilon, max_relative)
+            && f32::relative_eq(&self.z, &other.z, epsilon, max_relative)
     }
 }
 
