@@ -20,7 +20,7 @@ impl Ray {
                 obj.reflect(self).map(|out_ray| HitPoint {
                     obj: obj.clone(),
                     out_ray,
-                    norm: self.dir.mid_vec(out_ray.dir),
+                    norm: (-self.dir).mid_vec(out_ray.dir),
                 })
             })
             .min_by(|a, b| {
@@ -28,6 +28,13 @@ impl Ray {
                 let dist_b = self.pos.distance(b.position());
                 dist_a.partial_cmp(&dist_b).unwrap()
             })
+    }
+
+    pub fn new(pos: Vec3, dir: Vec3) -> Self {
+        Ray {
+            pos,
+            dir: dir.normalize(),
+        }
     }
 }
 
@@ -73,10 +80,7 @@ impl Camera {
                 let (fw, fh) = (2. * fw / ww, 2. * fh / wh);
                 let left_up_corner = self.pos + self.sight + self.up() - self.right();
                 let point = left_up_corner - self.up() * fh + self.right() * fw;
-                let ray = Ray {
-                    pos: self.pos,
-                    dir: (point - self.pos).normalize(),
-                };
+                let ray = Ray::new(self.pos, point - self.pos);
                 (w, h, ray)
             })
             .collect()

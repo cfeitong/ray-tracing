@@ -11,9 +11,10 @@ pub trait LightSource {
     fn color(&self) -> Color;
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct PointLight {
     pos: Vec3,
-    light_color: Color
+    light_color: Color,
 }
 
 impl LightSource for PointLight {
@@ -28,7 +29,6 @@ impl LightSource for PointLight {
     fn color(&self) -> Color {
         self.light_color
     }
-
 }
 
 impl PointLight {

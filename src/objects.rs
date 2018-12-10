@@ -80,7 +80,7 @@ impl Reflectable for Square {
         let h = n * d.dot(n).abs();
         d += h * 2.;
 
-        Some(Ray { pos: p, dir: d })
+        Some(Ray::new(p, d))
     }
 
     fn decay(&self) -> f32 {
@@ -160,6 +160,48 @@ impl Reflectable for Cube {
                 let d2 = r2.pos.distance(ray.pos);
                 d1.partial_cmp(&d2).unwrap_or(Ordering::Equal)
             })
+    }
+
+    fn decay(&self) -> f32 {
+        1.
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Sphere {
+    center: Vec3,
+    radius: f32,
+}
+
+impl Sphere {
+    pub fn new(o: Vec3, r: f32) -> Self {
+        Sphere {
+            center: o,
+            radius: r,
+        }
+    }
+}
+
+impl Reflectable for Sphere {
+    fn reflect(&self, ray: &Ray) -> Option<Ray> {
+        let a = ray.dir.len2();
+        let b = 2. * (ray.pos - self.center).dot(ray.dir);
+        let c = (ray.pos - self.center).len2() - self.radius.powi(2);
+        let delta = b.powi(2) - 4. * a * c;
+        if delta < 0. {
+            return None;
+        }
+        let t1 = (-b - delta.sqrt()) / (2. * a);
+        let t2 = (-b + delta.sqrt()) / (2. * a);
+        if t2 < 0. {
+            return None;
+        }
+        let t = if t1 < 0. { t2 } else { t1 };
+        let point = ray.pos + ray.dir * t;
+        let norm = (point - self.center).normalize();
+        let norm_proj = ray.dir.proj_to(norm);
+        let reflected_ray = Ray::new(point, -norm_proj + (ray.dir - norm_proj));
+        Some(reflected_ray)
     }
 
     fn decay(&self) -> f32 {
