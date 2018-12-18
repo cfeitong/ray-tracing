@@ -62,3 +62,13 @@ where
     rate = max!(rate, 0.);
     light.color() * rate
 }
+
+pub fn render_by_normal<Hit, Light>(point: &Hit, light: &Light) -> Color
+where
+    Hit: Borrow<HitPoint>,
+    Light: Borrow<dyn LightSource>,
+{
+    let n = point.borrow().normal();
+    let n = vec3!(n.y, n.z, n.x);
+    (n + 1.) / 2.
+}

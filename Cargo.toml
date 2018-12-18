@@ -6,3 +6,4 @@ authors = ["cfeitong <cfeitong@gmail.com>"]
 [dependencies]
 image = "0.20"
 approx = "0.3.0"
+rand = "0.6"

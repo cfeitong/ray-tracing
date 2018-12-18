@@ -2,6 +2,7 @@ use light::render;
 use objects::World;
 use ray::Ray;
 use utils::Color;
+use light::render_by_normal;
 
 pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
     if depth == 0 {
@@ -22,7 +23,7 @@ pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
                     })
                     .unwrap_or(true)
             })
-            .map(|light| render(&point, light))
+            .map(|light| render_by_normal(&point, light))
             .enumerate()
             .fold(Color::new(0., 0., 0.), |acc, (i, color)| {
                 let i = i as f32;
