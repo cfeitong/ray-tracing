@@ -1,14 +1,54 @@
 use std::borrow::Borrow;
 
+use objects::World;
 use ray::HitPoint;
+use ray::Ray;
 use utils::Color;
 use utils::Vec3;
 
 pub trait LightSource {
     /// light intensity in [0, 1]
     fn intensity(&self, point: Vec3) -> f32;
-    fn position(&self) -> Vec3;
+    fn dir_at(&self, point: Vec3) -> Vec3;
+    fn is_in_shadow(&self, point: Vec3, world: &World) -> bool;
     fn color(&self) -> Color;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct ParallelLight {
+    dir: Vec3,
+    light_color: Color,
+}
+
+impl ParallelLight {
+    pub fn new(dir: Vec3) -> ParallelLight {
+        ParallelLight {
+            dir,
+            light_color: vec3!(1,1,1),
+        }
+    }
+
+    pub fn with_color(mut self, color: Color) -> ParallelLight {
+        self.light_color = color;
+        self
+    }
+}
+
+impl LightSource for ParallelLight {
+    fn intensity(&self, _point: Vec3) -> f32 {
+        1.
+    }
+    fn dir_at(&self, _point: Vec3) -> Vec3 {
+        self.dir
+    }
+    fn is_in_shadow(&self, point: Vec3, world: &World) -> bool {
+        let dir = -self.dir_at(point);
+        let ray = Ray::new(point, dir);
+        ray.hit(world).is_some()
+    }
+    fn color(&self) -> Color {
+        self.light_color
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -17,13 +57,25 @@ pub struct PointLight {
     light_color: Color,
 }
 
+// TODO: add intensity decay with distance
 impl LightSource for PointLight {
     fn intensity(&self, point: Vec3) -> f32 {
         1. / (self.pos - point).len2()
     }
 
-    fn position(&self) -> Vec3 {
-        self.pos
+    fn dir_at(&self, point: Vec3) -> Vec3 {
+        (point - self.pos).normalize()
+    }
+    fn is_in_shadow(&self, point: Vec3, world: &World) -> bool {
+        let dir = -self.dir_at(point);
+        let ray = Ray::new(point, dir);
+        ray.hit(world)
+            .map(|hit| {
+                let l1 = (point - hit.position()).len2();
+                let l2 = (point - self.pos).len2();
+                l1 + 1e-3 < l2
+            })
+            .unwrap_or(false)
     }
 
     fn color(&self) -> Color {
@@ -54,9 +106,7 @@ where
     let point = point.borrow();
     let light = light.borrow();
     let rate1 = 1.;
-    let rate2 = point
-        .out_dir()
-        .dot((light.position() - point.position()).normalize());
+    let rate2 = point.out_dir().dot(-light.dir_at(point.position()));
     let mut rate = rate1 * rate2.powf(SHININESS);
     rate = min!(rate, 1.);
     rate = max!(rate, 0.);

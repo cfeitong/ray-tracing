@@ -12,6 +12,10 @@ pub struct Square {
 }
 
 impl Square {
+    pub fn new(center: Vec3, x: Vec3, y: Vec3, len: f32) -> Square {
+        Square { center, x, y, len }
+    }
+
     pub fn normal(&self) -> Vec3 {
         self.x.cross(self.y).normalize()
     }
@@ -45,7 +49,7 @@ impl Square {
 
     pub fn is_in_plane(&self, p: Vec3) -> bool {
         let t = self.center - p;
-        relative_eq!(t.dot(self.normal()), 0.)
+        t.dot(self.normal()) < 1e-3
     }
 
     pub fn get_corners(&self) -> Vec<Vec3> {
@@ -64,27 +68,28 @@ impl Reflectable for Square {
         let mut n = self.normal();
         let a = self.center;
 
-        if ray.dir.dot(n) > 0. {
+        let v = ray.dir.dot(n);
+
+        if v.abs() < 1e-3 {
+            return None;
+        }
+        else if v > 0. {
             n *= -1.;
         }
 
         let t = (a - ray.pos).dot(n) / (ray.dir.dot(n));
         let p = ray.pos + ray.dir * t; // hit point
 
-        if t < 0. || !self.contain(p) || relative_eq!(n.dot(ray.dir), 0.) {
+        if t < 0. || !self.contain(p) {
             return None;
         }
 
         let mut d = p - ray.pos;
 
-        let h = n * d.dot(n).abs();
-        d += h * 2.;
+        let proj = d.proj_to(n);
+        d -= 2. * proj;
 
         Some(Ray::new(p, d))
-    }
-
-    fn decay(&self) -> f32 {
-        1.
     }
 }
 
@@ -161,10 +166,6 @@ impl Reflectable for Cube {
                 d1.partial_cmp(&d2).unwrap_or(Ordering::Equal)
             })
     }
-
-    fn decay(&self) -> f32 {
-        1.
-    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -200,12 +201,8 @@ impl Reflectable for Sphere {
         let point = ray.pos + ray.dir * t;
         let norm = (point - self.center).normalize();
         let norm_proj = ray.dir.proj_to(norm);
-        let reflected_ray = Ray::new(point, -norm_proj + (ray.dir - norm_proj));
+        let reflected_ray = Ray::new(point, ray.dir - 2. * norm_proj);
         Some(reflected_ray)
-    }
-
-    fn decay(&self) -> f32 {
-        1.
     }
 }
 

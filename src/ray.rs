@@ -18,10 +18,8 @@ impl Ray {
             .objects
             .iter()
             .filter_map(|obj| {
-                obj.reflect(self).map(|out_ray| HitPoint {
-                    obj: obj.clone(),
-                    out_ray,
-                    norm: (-self.dir).mid_vec(out_ray.dir),
+                obj.reflect(self).map(|out_ray| {
+                    HitPoint::new(obj.clone(), (-self.dir).mid_vec(out_ray.dir), out_ray)
                 })
             })
             .min_by(|a, b| {
@@ -41,7 +39,9 @@ impl Ray {
 
 pub trait Reflectable: Debug {
     fn reflect(&self, ray: &Ray) -> Option<Ray>;
-    fn decay(&self) -> f32;
+    fn decay(&self) -> f32 {
+        0.8
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -106,14 +106,14 @@ impl Camera {
     }
 
     /// create a camera which is at `pos` and look at `point`.
-    pub fn new(pos: Vec3, point: Vec3) -> Camera {
+    pub fn new(from: Vec3, to: Vec3) -> Camera {
         let mut camera = Camera {
-            pos,
+            pos: from,
             up: Vec3::new(0., 0., 1.),
             sight: Vec3::new(0., 0., 1.),
             sample_rate: 1.,
         };
-        camera.look(point);
+        camera.look(to);
         camera
     }
 }
@@ -126,6 +126,14 @@ pub struct HitPoint {
 }
 
 impl HitPoint {
+    pub fn new(obj: Rc<dyn Reflectable>, norm: Vec3, Ray { pos, dir }: Ray) -> HitPoint {
+        HitPoint {
+            out_ray: Ray::new(pos + 1e-3 * dir, dir),
+            obj,
+            norm,
+        }
+    }
+
     pub fn angle(&self) -> f32 {
         self.out_ray.dir.dot(self.norm).acos()
     }
