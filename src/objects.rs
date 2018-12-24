@@ -72,8 +72,7 @@ impl Reflectable for Square {
 
         if v.abs() < 1e-3 {
             return None;
-        }
-        else if v > 0. {
+        } else if v > 0. {
             n *= -1.;
         }
 

@@ -12,9 +12,7 @@ pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
             let c = world
                 .lights
                 .iter()
-                .filter(|&light| {
-                    !light.is_in_shadow(point.position(), world)
-                })
+                .filter(|&light| !light.is_in_shadow(point.position(), world))
                 .map(|light| render(&point, light))
                 .enumerate()
                 .fold(Color::new(0., 0., 0.), |acc, (i, color)| {

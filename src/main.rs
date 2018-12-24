@@ -9,12 +9,12 @@ use std::rc::Rc;
 
 use image::{ImageBuffer, Rgb};
 
+use light::ParallelLight;
 use light::PointLight;
 use objects::{Cube, Sphere, Square, World};
 use ray::Camera;
 use trace::trace;
 use utils::{vec3_to_rgb, Vec3};
-use light::ParallelLight;
 
 #[macro_use]
 mod utils;
@@ -44,7 +44,7 @@ fn main() {
         vec3!(0, 1, 0),
         100.,
     )));
-//    world.add_light(Rc::new(PointLight::new(Vec3::new(0., 0., 4.))));
+    //    world.add_light(Rc::new(PointLight::new(Vec3::new(0., 0., 4.))));
     world.add_light(Rc::new(ParallelLight::new(vec3!(0, 1, -1))));
 
     let camera =

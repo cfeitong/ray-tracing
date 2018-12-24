@@ -24,7 +24,7 @@ impl ParallelLight {
     pub fn new(dir: Vec3) -> ParallelLight {
         ParallelLight {
             dir,
-            light_color: vec3!(1,1,1),
+            light_color: vec3!(1, 1, 1),
         }
     }
 
@@ -113,7 +113,7 @@ where
     light.color() * rate
 }
 
-pub fn render_by_normal<Hit, Light>(point: &Hit, light: &Light) -> Color
+pub fn render_by_normal<Hit, Light>(point: &Hit, _light: &Light) -> Color
 where
     Hit: Borrow<HitPoint>,
     Light: Borrow<dyn LightSource>,
