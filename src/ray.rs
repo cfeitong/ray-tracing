@@ -4,7 +4,7 @@ use std::rc::Rc;
 use rand::prelude::*;
 
 use objects::World;
-use utils::Vec3;
+use utils::{gen_point_in_sphere, Vec3};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -126,24 +126,24 @@ pub struct HitPoint {
 }
 
 impl HitPoint {
-    pub fn new(obj: Rc<dyn Reflectable>, norm: Vec3, Ray { pos, dir }: Ray) -> HitPoint {
+    pub fn new(obj: Rc<dyn Reflectable>, norm: Vec3, Ray {pos, dir}: Ray) -> HitPoint {
         HitPoint {
-            out_ray: Ray::new(pos + 1e-3 * dir, dir),
+            out_ray: Ray::new(pos+1e-3*dir, dir),
             obj,
-            norm,
+            norm: norm.normalize(),
         }
     }
 
     pub fn angle(&self) -> f32 {
-        self.out_ray.dir.dot(self.norm).acos()
+        self.out_dir().dot(self.norm).acos()
     }
 
     pub fn out_dir(&self) -> Vec3 {
-        self.out_ray.dir.normalize()
+        self.out_ray.dir
     }
 
     pub fn in_dir(&self) -> Vec3 {
-        let out_dir = self.out_ray.dir.normalize();
+        let out_dir = self.out_ray.dir;
         let h = out_dir - out_dir.proj_to(self.norm);
         out_dir.proj_to(self.norm) - h
     }
@@ -153,11 +153,20 @@ impl HitPoint {
     }
 
     pub fn normal(&self) -> Vec3 {
-        self.norm.normalize()
+        self.norm
     }
 
-    pub fn reflected_ray(&self) -> Ray {
+    pub fn specular_ray(&self) -> Ray {
         self.out_ray
+    }
+
+    pub fn diffuse_ray(&self) -> Ray {
+        let pos = self.position();
+        let o = pos + self.norm;
+        let p = gen_point_in_sphere(1.);
+        let t = o + p;
+        let dir = (t - pos).normalize();
+        Ray::new(pos, dir)
     }
 
     pub fn position(&self) -> Vec3 {
