@@ -1,4 +1,4 @@
-#![feature(box_syntax)]
+#![feature(box_syntax, arbitrary_self_types)]
 
 #[macro_use]
 extern crate approx;
@@ -9,12 +9,12 @@ use std::rc::Rc;
 
 use image::{ImageBuffer, Rgb};
 
-use light::{ParallelLight};
+use light::ParallelLight;
+use light::PointLight;
 use objects::{Cube, Sphere, Square, World};
 use ray::Camera;
 use trace::trace;
-use utils::{vec3_to_rgb, Vec3};
-use light::PointLight;
+use utils::{Vec3, vec3_to_rgb};
 
 #[macro_use]
 mod utils;

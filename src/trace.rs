@@ -25,9 +25,10 @@ pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
                     (acc * i + color) / (i + 1.)
                 });
             if depth != 0 {
-                let r = trace(&point.specular_ray(), world, depth - 1);
-                let decay = point.object().decay();
-                c * decay + r * (1. - decay)
+//                let r = trace(&point.specular_ray(), world, depth - 1);
+//                let decay = point.object().decay();
+//                c * decay + r * (1. - decay)
+                c
             } else {
                 c
             }

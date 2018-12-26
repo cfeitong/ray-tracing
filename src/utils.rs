@@ -1,12 +1,14 @@
+use std::{f32, u8};
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-use std::{f32, u8};
 
 use approx::AbsDiffEq;
 use approx::RelativeEq;
 use approx::UlpsEq;
 use image::{Pixel, Rgb};
 use rand::Rng;
+
+pub const EPS: f32 = 1e-3;
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub struct Vec3 {
@@ -248,6 +250,18 @@ impl<T: Into<f32>> DivAssign<T> for Vec3 {
     }
 }
 
+impl<T: Into<f32>> From<(T, T, T)> for Vec3 {
+    fn from(v: (T, T, T)) -> Self {
+        vec3!(v.0.into(), v.1.into(), v.2.into())
+    }
+}
+
+impl From<Vec3> for (f32, f32, f32) {
+    fn from(v: Vec3) -> Self {
+        (v.x, v.y, v.z)
+    }
+}
+
 impl AbsDiffEq for Vec3 {
     type Epsilon = <f32 as AbsDiffEq>::Epsilon;
 
@@ -335,4 +349,33 @@ pub fn gen_point_in_sphere(radius: f32) -> Vec3 {
         r * phi.sin() * theta.sin(),
         r * phi.cos()
     )
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_vec3() {
+        assert_relative_eq!(vec3!(1, 2, 3).dot(vec3!(5, 40, 200)), 685.);
+
+        assert_relative_eq!(vec3!(1, 0, 0).cross(vec3!(0, 1, 0)), vec3!(0, 0, 1));
+        assert_relative_eq!(vec3!(0, 1, 0).cross(vec3!(0, 0, 1)), vec3!(1, 0, 0));
+        assert_relative_eq!(vec3!(0, 0, 1).cross(vec3!(1, 0, 0)), vec3!(0, 1, 0));
+        assert_relative_eq!(vec3!(0, 1, 0).cross(vec3!(1, 0, 0)), vec3!(0, 0, -1));
+        assert_relative_eq!(vec3!(0, 0, 1).cross(vec3!(0, 1, 0)), vec3!(-1, 0, 0));
+        assert_relative_eq!(vec3!(1, 0, 0).cross(vec3!(0, 0, 1)), vec3!(0, -1, 0));
+
+        assert_relative_eq!(vec3!(1, 2, 3) + vec3!(10, 100, 1000), vec3!(11, 102, 1003));
+        assert_relative_eq!(vec3!(1, 2, 3) + 10., vec3!(11, 12, 13));
+        assert_relative_eq!(vec3!(10, 100, 1000) + vec3!(1, 2, 3), vec3!(11, 102, 1003));
+        assert_relative_eq!(10. + vec3!(1, 2, 3), vec3!(11, 12, 13));
+        assert_relative_eq!(vec3!(1, 2, 3) - vec3!(10, 100, 1000), vec3!(-9, -98, -997));
+        assert_relative_eq!(vec3!(1, 2, 3) - 10., vec3!(-9, -8, -7));
+        assert_relative_eq!(vec3!(10, 100, 1000) - vec3!(1, 2, 3), -vec3!(-9, -98, -997));
+        assert_relative_eq!(10. - vec3!(1, 2, 3), -vec3!(-9, -8, -7));
+
+        assert_relative_eq!(vec3!(1, 2, 3) * 5., vec3!(5, 10, 15));
+        assert_relative_eq!(5. * vec3!(1, 2, 3), vec3!(5, 10, 15));
+        assert_relative_eq!(vec3!(10, 20, 30) / 5., vec3!(2, 4, 6));
+        assert_relative_eq!(24. / vec3!(1, 2, 3), vec3!(24, 12, 8));
+    }
 }

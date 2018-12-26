@@ -3,8 +3,9 @@ use std::rc::Rc;
 
 use rand::prelude::*;
 
-use objects::World;
+use objects::{Shape, World};
 use utils::{gen_point_in_sphere, Vec3};
+use utils::EPS;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -13,14 +14,12 @@ pub struct Ray {
 }
 
 impl Ray {
-    pub fn hit(&self, world: &World) -> Option<HitPoint> {
+    pub fn hit(&self, world: &World) -> Option<HitRecord> {
         world
             .objects
             .iter()
             .filter_map(|obj| {
-                obj.reflect(self).map(|out_ray| {
-                    HitPoint::new(obj.clone(), (-self.dir).mid_vec(out_ray.dir), out_ray)
-                })
+                obj.clone().hit_by(self)
             })
             .min_by(|a, b| {
                 let dist_a = self.pos.distance(a.position());
@@ -34,13 +33,6 @@ impl Ray {
             pos,
             dir: dir.normalize(),
         }
-    }
-}
-
-pub trait Reflectable: Debug {
-    fn reflect(&self, ray: &Ray) -> Option<Ray>;
-    fn decay(&self) -> f32 {
-        0.8
     }
 }
 
@@ -119,50 +111,54 @@ impl Camera {
 }
 
 #[derive(Clone)]
-pub struct HitPoint {
-    out_ray: Ray,
-    obj: Rc<dyn Reflectable>,
-    norm: Vec3,
+pub struct HitRecord {
+    pub(crate) obj: Rc<dyn Shape>,
+    pub(crate) info: HitInfo,
 }
 
-impl HitPoint {
-    pub fn new(obj: Rc<dyn Reflectable>, norm: Vec3, Ray {pos, dir}: Ray) -> HitPoint {
-        HitPoint {
-            out_ray: Ray::new(pos+1e-3*dir, dir),
+impl HitRecord {
+    pub fn new(
+        obj: Rc<dyn Shape>,
+        distance: f32,
+        norm: Vec3,
+        hit_point: Vec3,
+        in_dir: Vec3,
+    ) -> HitRecord {
+        let norm = norm.normalize();
+        HitRecord {
             obj,
-            norm: norm.normalize(),
+            info: HitInfo::new(distance, norm, hit_point, in_dir),
         }
     }
 
     pub fn angle(&self) -> f32 {
-        self.out_dir().dot(self.norm).acos()
+        self.out_dir().dot(self.info.norm).acos()
     }
 
     pub fn out_dir(&self) -> Vec3 {
-        self.out_ray.dir
+        self.info.out_dir
     }
 
     pub fn in_dir(&self) -> Vec3 {
-        let out_dir = self.out_ray.dir;
-        let h = out_dir - out_dir.proj_to(self.norm);
-        out_dir.proj_to(self.norm) - h
+        self.info.in_dir
     }
 
-    pub fn object(&self) -> Rc<dyn Reflectable> {
+    pub fn object(&self) -> Rc<dyn Shape> {
         self.obj.clone()
     }
 
     pub fn normal(&self) -> Vec3 {
-        self.norm
+        self.info.norm
     }
 
     pub fn specular_ray(&self) -> Ray {
-        self.out_ray
+        let pos = self.position();
+        Ray::new(pos, self.info.out_dir)
     }
 
     pub fn diffuse_ray(&self) -> Ray {
         let pos = self.position();
-        let o = pos + self.norm;
+        let o = pos + self.info.norm;
         let p = gen_point_in_sphere(1.);
         let t = o + p;
         let dir = (t - pos).normalize();
@@ -170,6 +166,35 @@ impl HitPoint {
     }
 
     pub fn position(&self) -> Vec3 {
-        self.out_ray.pos
+        self.info.hit_point + EPS * self.info.out_dir
+    }
+
+    pub fn distance(&self) -> f32 {
+        self.info.distance
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct HitInfo {
+    pub distance: f32,
+    pub norm: Vec3,
+    pub hit_point: Vec3,
+    pub in_dir: Vec3,
+    pub out_dir: Vec3,
+}
+
+impl HitInfo {
+    pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, in_dir: Vec3) -> HitInfo {
+        let mut norm = norm.normalize();
+        if norm.dot(in_dir) > -EPS {
+            norm = -norm;
+        }
+        HitInfo {
+            distance,
+            norm,
+            hit_point,
+            in_dir,
+            out_dir: in_dir - 2. * in_dir.proj_to(norm),
+        }
     }
 }

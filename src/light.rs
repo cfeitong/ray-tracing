@@ -1,9 +1,10 @@
 use std::borrow::Borrow;
 
 use objects::World;
-use ray::HitPoint;
+use ray::HitRecord;
 use ray::Ray;
 use utils::Color;
+use utils::EPS;
 use utils::Vec3;
 
 pub trait LightSource {
@@ -73,7 +74,7 @@ impl LightSource for PointLight {
             .map(|hit| {
                 let l1 = (point - hit.position()).len2();
                 let l2 = (point - self.pos).len2();
-                l1 + 1e-3 < l2
+                l1 + EPS < l2
             })
             .unwrap_or(false)
     }
@@ -99,7 +100,7 @@ impl PointLight {
 
 pub fn render<Hit, Light>(point: &Hit, light: &Light) -> Color
 where
-    Hit: Borrow<HitPoint>,
+    Hit: Borrow<HitRecord>,
     Light: Borrow<dyn LightSource>,
 {
     const SHININESS: f32 = 2.;
@@ -126,7 +127,7 @@ where
 
 pub fn render_by_normal<Hit, Light>(point: &Hit, _light: &Light) -> Color
 where
-    Hit: Borrow<HitPoint>,
+    Hit: Borrow<HitRecord>,
     Light: Borrow<dyn LightSource>,
 {
     let n = point.borrow().normal();
