@@ -1,11 +1,12 @@
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-use std::u8;
+use std::{f32, u8};
 
 use approx::AbsDiffEq;
 use approx::RelativeEq;
 use approx::UlpsEq;
 use image::{Pixel, Rgb};
+use rand::Rng;
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub struct Vec3 {
@@ -317,9 +318,21 @@ macro_rules! min {
 pub type Color = Vec3;
 
 pub fn vec3_to_rgb(c: Color) -> Rgb<u8> {
-    const U8MAX: f32 = u8::MAX as f32;
-    let r = (U8MAX * max!(0., min!(1., c.x))) as u8;
-    let g = (U8MAX * max!(0., min!(1., c.y))) as u8;
-    let b = (U8MAX * max!(0., min!(1., c.z))) as u8;
+    let r = (255.99 * max!(0., min!(1., c.x))) as u8;
+    let g = (255.99 * max!(0., min!(1., c.y))) as u8;
+    let b = (255.99 * max!(0., min!(1., c.z))) as u8;
     *Rgb::from_slice(&[r, g, b])
+}
+
+pub fn gen_point_in_sphere(radius: f32) -> Vec3 {
+    let mut rng = rand::thread_rng();
+    let r = radius;
+    let theta: f32 = rng.gen_range(0., 2. * f32::consts::PI);
+    let phi: f32 = rng.gen_range(-f32::consts::FRAC_PI_2, f32::consts::FRAC_PI_2);
+
+    vec3!(
+        r * phi.sin() * theta.cos(),
+        r * phi.sin() * theta.sin(),
+        r * phi.cos()
+    )
 }

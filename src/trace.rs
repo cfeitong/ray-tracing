@@ -12,15 +12,20 @@ pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
             let c = world
                 .lights
                 .iter()
-                .filter(|&light| !light.is_in_shadow(point.position(), world))
-                .map(|light| render(&point, light))
+                .map(|light| {
+                    let mut illumination = 0.3 * light.color() * light.intensity(point.position());
+                    if !light.is_in_shadow(point.position(), world) {
+                        illumination += render(&point, light);
+                    }
+                    illumination
+                })
                 .enumerate()
                 .fold(Color::new(0., 0., 0.), |acc, (i, color)| {
                     let i = i as f32;
                     (acc * i + color) / (i + 1.)
                 });
             if depth != 0 {
-                let r = trace(&point.reflected_ray(), world, depth - 1);
+                let r = trace(&point.specular_ray(), world, depth - 1);
                 let decay = point.object().decay();
                 c * decay + r * (1. - decay)
             } else {

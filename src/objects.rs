@@ -218,11 +218,11 @@ impl World {
         }
     }
 
-    pub fn add_obj(&mut self, obj: Rc<dyn Reflectable>) {
-        self.objects.push(obj);
+    pub fn add_obj<T: Reflectable + 'static>(&mut self, obj: T) {
+        self.objects.push(Rc::new(obj));
     }
 
-    pub fn add_light(&mut self, light: Rc<dyn LightSource>) {
-        self.lights.push(light);
+    pub fn add_light<T: LightSource + 'static>(&mut self, light: T) {
+        self.lights.push(Rc::new(light));
     }
 }
