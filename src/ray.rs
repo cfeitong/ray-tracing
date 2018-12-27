@@ -3,9 +3,10 @@ use std::rc::Rc;
 
 use rand::prelude::*;
 
-use objects::{Shape, World};
-use utils::{gen_point_in_sphere, Vec3};
-use utils::EPS;
+use object::{Object, World};
+use object::RcObjectTrait;
+use util::{gen_point_in_sphere, Vec3};
+use util::EPS;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
@@ -18,12 +19,10 @@ impl Ray {
         world
             .objects
             .iter()
-            .filter_map(|obj| {
-                obj.clone().hit_by(self)
-            })
+            .filter_map(|obj| obj.hit_by(self))
             .min_by(|a, b| {
-                let dist_a = self.pos.distance(a.position());
-                let dist_b = self.pos.distance(b.position());
+                let dist_a = a.distance();
+                let dist_b = b.distance();
                 dist_a.partial_cmp(&dist_b).unwrap()
             })
     }
@@ -110,15 +109,14 @@ impl Camera {
     }
 }
 
-#[derive(Clone)]
 pub struct HitRecord {
-    pub(crate) obj: Rc<dyn Shape>,
+    pub(crate) obj: Rc<Object>,
     pub(crate) info: HitInfo,
 }
 
 impl HitRecord {
     pub fn new(
-        obj: Rc<dyn Shape>,
+        obj: Rc<Object>,
         distance: f32,
         norm: Vec3,
         hit_point: Vec3,
@@ -143,7 +141,7 @@ impl HitRecord {
         self.info.in_dir
     }
 
-    pub fn object(&self) -> Rc<dyn Shape> {
+    pub fn object(&self) -> Rc<Object> {
         self.obj.clone()
     }
 
@@ -166,11 +164,15 @@ impl HitRecord {
     }
 
     pub fn position(&self) -> Vec3 {
-        self.info.hit_point + EPS * self.info.out_dir
+        self.info.hit_point
     }
 
     pub fn distance(&self) -> f32 {
         self.info.distance
+    }
+
+    pub fn out_ray(&self) -> Ray {
+        self.info.out_ray()
     }
 }
 
@@ -184,17 +186,26 @@ pub struct HitInfo {
 }
 
 impl HitInfo {
-    pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, in_dir: Vec3) -> HitInfo {
+    pub fn new(distance: f32, norm: Vec3, mut hit_point: Vec3, in_dir: Vec3) -> HitInfo {
         let mut norm = norm.normalize();
         if norm.dot(in_dir) > -EPS {
             norm = -norm;
         }
+        let out_dir = in_dir - 2. * in_dir.proj_to(norm);
+        hit_point += EPS * out_dir;
         HitInfo {
             distance,
             norm,
             hit_point,
             in_dir,
-            out_dir: in_dir - 2. * in_dir.proj_to(norm),
+            out_dir,
+        }
+    }
+
+    pub fn out_ray(&self) -> Ray {
+        Ray {
+            pos: self.hit_point,
+            dir: self.out_dir,
         }
     }
 }

@@ -2,16 +2,49 @@ use std::cmp;
 use std::rc::Rc;
 
 use light::LightSource;
-use ray::{HitRecord, Ray};
-use ray::HitInfo;
-use utils::{EPS, Vec3};
+use material::Material;
+use ray::{HitInfo, HitRecord, Ray};
+use util::{EPS, Vec3};
 
-pub trait Hittable {
+pub trait Shape {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo>;
 }
 
-pub trait Shape: Hittable {
-    fn hit_by(self: Rc<Self>, ray: &Ray) -> Option<HitRecord>;
+impl<T: Shape> Shape for AsRef<T> {
+    fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
+        self.hit_info(ray)
+    }
+}
+
+pub trait RcObjectTrait {
+    fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
+}
+
+pub struct Object {
+    pub shape: Box<Shape>,
+    pub material: Box<dyn Material>,
+}
+
+impl Object {
+    pub fn new<S, M>(shape: S, material: M) -> Object
+        where
+            S: Shape + 'static,
+            M: Material + 'static,
+    {
+        Object {
+            shape: Box::new(shape),
+            material: Box::new(material),
+        }
+    }
+}
+
+impl RcObjectTrait for Rc<Object> {
+    fn hit_by(&self, ray: &Ray) -> Option<HitRecord> {
+        self.shape.hit_info(ray).map(|info| HitRecord {
+            obj: self.clone(),
+            info,
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -50,7 +83,7 @@ impl Triangle {
     }
 }
 
-impl Hittable for Triangle {
+impl Shape for Triangle {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         let e1 = self.p1 - self.p0;
         let e2 = self.p2 - self.p0;
@@ -84,12 +117,6 @@ impl Hittable for Triangle {
     }
 }
 
-impl Shape for Triangle {
-    fn hit_by(self: Rc<Self>, ray: &Ray) -> Option<HitRecord> {
-        self.hit_info(ray).map(|info| HitRecord { obj: self, info })
-    }
-}
-
 #[derive(Debug)]
 pub struct Square {
     tri0: Triangle,
@@ -98,13 +125,15 @@ pub struct Square {
 
 impl Square {
     pub fn new(center: Vec3, x: Vec3, y: Vec3, len: f32) -> Square {
-        let p0 = center - x * len / 2. + y * len / 2.;
-        let p1 = center - x * len / 2. - y * len / 2.;
-        let p2 = center + x * len / 2. - y * len / 2.;
-        let p3 = center + x * len / 2. + y * len / 2.;
+        let x2 = x * len / 2.;
+        let y2 = y * len / 2.;
+        let p0 = center - x2 + y2;
+        let p1 = center - x2 - y2;
+        let p2 = center + x2 - y2;
+        let p3 = center + x2 + y2;
         Square {
             tri0: Triangle::new(p0, p1, p2),
-            tri1: Triangle::new(p1, p2, p3),
+            tri1: Triangle::new(p2, p3, p0),
         }
     }
 
@@ -134,15 +163,9 @@ impl Square {
     }
 }
 
-impl Hittable for Square {
+impl Shape for Square {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         self.tri0.hit_info(ray).or(self.tri1.hit_info(ray))
-    }
-}
-
-impl Shape for Square {
-    fn hit_by(self: Rc<Self>, ray: &Ray) -> Option<HitRecord> {
-        self.hit_info(ray).map(|info| HitRecord { obj: self, info })
     }
 }
 
@@ -177,7 +200,7 @@ impl Cube {
     }
 }
 
-impl Hittable for Cube {
+impl Shape for Cube {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         self.squares()
             .iter()
@@ -187,12 +210,6 @@ impl Hittable for Cube {
                 let d2 = r2.distance;
                 d1.partial_cmp(&d2).unwrap_or(cmp::Ordering::Equal)
             })
-    }
-}
-
-impl Shape for Cube {
-    fn hit_by(self: Rc<Self>, ray: &Ray) -> Option<HitRecord> {
-        self.hit_info(ray).map(|info| HitRecord { obj: self, info })
     }
 }
 
@@ -211,7 +228,7 @@ impl Sphere {
     }
 }
 
-impl Hittable for Sphere {
+impl Shape for Sphere {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         let a = ray.dir.len2();
         let b = 2. * (ray.pos - self.center).dot(ray.dir);
@@ -234,14 +251,8 @@ impl Hittable for Sphere {
     }
 }
 
-impl Shape for Sphere {
-    fn hit_by(self: Rc<Self>, ray: &Ray) -> Option<HitRecord> {
-        self.hit_info(ray).map(|info| HitRecord { obj: self, info })
-    }
-}
-
 pub struct World {
-    pub objects: Vec<Rc<dyn Shape>>,
+    pub objects: Vec<Rc<Object>>,
     pub lights: Vec<Rc<dyn LightSource>>,
 }
 
@@ -253,8 +264,8 @@ impl World {
         }
     }
 
-    pub fn add_obj<T: Shape + 'static>(&mut self, obj: T) {
-        self.objects.push(Rc::new(obj));
+    pub fn add_obj<T: Shape + 'static, M: Material + 'static>(&mut self, shape: T, material: M) {
+        self.objects.push(Rc::new(Object::new(shape, material)));
     }
 
     pub fn add_light<T: LightSource + 'static>(&mut self, light: T) {
@@ -264,46 +275,40 @@ impl World {
 
 #[cfg(test)]
 mod test {
-    use std::rc::Rc;
-
-    use utils::*;
+    use util::*;
 
     use super::{Ray, Shape, Triangle};
 
     #[test]
     fn test_triangle() {
-        let tri = Rc::new(Triangle::new(
-            vec3!(0, -1, 0),
-            vec3!(1, 1, 0),
-            vec3!(-1, 1, 0),
-        ));
+        let tri = Triangle::new(vec3!(0, -1, 0), vec3!(1, 1, 0), vec3!(-1, 1, 0));
         let ray0 = Ray::new(vec3!(0, 0, 1), vec3!(0, 0, -1));
-        let record = tri.clone().hit_by(&ray0).unwrap();
-        assert_relative_eq!(record.position(), EPS * record.out_dir() + vec3!(0, 0, 0));
-        assert_relative_eq!(record.out_dir(), vec3!(0, 0, 1));
-        assert_relative_eq!(record.normal(), vec3!(0, 0, 1));
+        let info = tri.hit_info(&ray0).unwrap();
+        assert_relative_eq!(info.hit_point, EPS * info.out_dir + vec3!(0, 0, 0));
+        assert_relative_eq!(info.out_dir, vec3!(0, 0, 1));
+        assert_relative_eq!(info.norm, vec3!(0, 0, 1));
 
         let ray1 = Ray::new(vec3!(3, 0, 1), vec3!(0, 0, -1));
-        assert!(tri.clone().hit_by(&ray1).is_none());
+        assert!(tri.hit_info(&ray1).is_none());
 
         let ray2 = Ray::new(vec3!(3, 0, -1), vec3!(0, 0, 1));
-        assert!(tri.clone().hit_by(&ray2).is_none());
+        assert!(tri.hit_info(&ray2).is_none());
 
         let ray3 = Ray::new(vec3!(0, 0, 1), vec3!(1, 0, 0));
-        assert!(tri.clone().hit_by(&ray3).is_none());
+        assert!(tri.hit_info(&ray3).is_none());
 
         let ray4 = Ray::new(vec3!(0, 0, -1), vec3!(1, 0, 0));
-        assert!(tri.clone().hit_by(&ray4).is_none());
+        assert!(tri.hit_info(&ray4).is_none());
 
         let ray5 = Ray::new(vec3!(0, 0, -1), vec3!(0, 0, -1));
-        assert!(tri.clone().hit_by(&ray5).is_none());
+        assert!(tri.hit_info(&ray5).is_none());
 
-        assert!(tri.clone().is_in_plane(vec3!(1, 4, 0)));
-        assert!(!tri.clone().is_in_plane(vec3!(1, 4, 0.1)));
+        assert!(tri.is_in_plane(vec3!(1, 4, 0)));
+        assert!(!tri.is_in_plane(vec3!(1, 4, 0.1)));
 
-        assert!(tri.clone().contain(vec3!(0, 0, 0)));
-        assert!(!tri.clone().contain(vec3!(3, 0, 0)));
-        assert!(!tri.clone().contain(vec3!(0, 0, 0.1)));
-        assert!(tri.clone().contain(vec3!(1, 1, 0)));
+        assert!(tri.contain(vec3!(0, 0, 0)));
+        assert!(!tri.contain(vec3!(3, 0, 0)));
+        assert!(!tri.contain(vec3!(0, 0, 0.1)));
+        assert!(tri.contain(vec3!(1, 1, 0)));
     }
 }

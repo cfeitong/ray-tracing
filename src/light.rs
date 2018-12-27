@@ -1,11 +1,11 @@
 use std::borrow::Borrow;
 
-use objects::World;
+use object::World;
 use ray::HitRecord;
 use ray::Ray;
-use utils::Color;
-use utils::EPS;
-use utils::Vec3;
+use util::Color;
+use util::EPS;
+use util::Vec3;
 
 pub trait LightSource {
     /// light intensity in [0, 1]
@@ -96,41 +96,4 @@ impl PointLight {
             light_color: vec3!(1, 1, 1),
         }
     }
-}
-
-pub fn render<Hit, Light>(point: &Hit, light: &Light) -> Color
-where
-    Hit: Borrow<HitRecord>,
-    Light: Borrow<dyn LightSource>,
-{
-    const SHININESS: f32 = 2.;
-    let point = point.borrow();
-    let pos = point.position();
-    let light = light.borrow();
-
-    let rate1 = 1.;
-    let rate2 = point.out_dir().dot(-light.dir_at(pos));
-    let mut rate = rate1 * rate2.powf(SHININESS);
-    rate = min!(rate, 1.);
-    rate = max!(rate, 0.);
-
-    let specular_illumination = rate;
-
-    let diffuse_illumination = max!(point.normal().dot(-light.dir_at(pos)), 0.);
-
-    let ambient_illumination = 0.1;
-
-    (specular_illumination * 0.5 + diffuse_illumination * 0.5 + ambient_illumination)
-        * light.intensity(pos)
-        * light.color()
-}
-
-pub fn render_by_normal<Hit, Light>(point: &Hit, _light: &Light) -> Color
-where
-    Hit: Borrow<HitRecord>,
-    Light: Borrow<dyn LightSource>,
-{
-    let n = point.borrow().normal();
-    let n = vec3!(n.y, n.z, n.x);
-    (n + 1.) / 2.
 }

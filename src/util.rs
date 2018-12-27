@@ -1,5 +1,6 @@
 use std::{f32, u8};
 use std::fmt;
+use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use approx::AbsDiffEq;
@@ -78,7 +79,7 @@ impl Vec3 {
 
 macro_rules! vec3 {
     ($x:expr, $y:expr, $z:expr) => {
-        $crate::utils::Vec3::new($x as f32, $y as f32, $z as f32)
+        $crate::util::Vec3::new($x as f32, $y as f32, $z as f32)
     };
 }
 
@@ -321,6 +322,12 @@ impl UlpsEq for Vec3 {
     }
 }
 
+impl Sum for Vec3 {
+    fn sum<I: Iterator<Item=Vec3>>(iter: I) -> Vec3 {
+        iter.fold((0., 0., 0.).into(), |acc, cur| acc + cur)
+    }
+}
+
 macro_rules! max {
     ($a:expr) => {$a};
     ($a:expr $(,$b:expr)+) => {{
@@ -408,6 +415,13 @@ mod test {
         let mut v = vec3!(1, 2, 3);
         v /= 10.;
         assert_relative_eq!(v, vec3!(0.1, 0.2, 0.3));
+
+        assert_relative_eq!(
+            vec![vec3!(1, 2, 3), vec3!(10, 20, 30), vec3!(100, 200, 300)]
+                .into_iter()
+                .sum(),
+            vec3!(111, 222, 333)
+        );
     }
 
     #[test]

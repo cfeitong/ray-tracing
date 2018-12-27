@@ -1,37 +1,16 @@
-use light::render;
-use objects::World;
+use object::World;
 use ray::Ray;
-use utils::Color;
+use util::Color;
 
 pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
     if depth == 0 {
         return Color::new(0., 0., 0.);
     }
     ray.hit(world)
-        .map(|point| {
-            let c = world
-                .lights
-                .iter()
-                .map(|light| {
-                    let mut illumination = 0.3 * light.color() * light.intensity(point.position());
-                    if !light.is_in_shadow(point.position(), world) {
-                        illumination += render(&point, light);
-                    }
-                    illumination
-                })
-                .enumerate()
-                .fold(Color::new(0., 0., 0.), |acc, (i, color)| {
-                    let i = i as f32;
-                    (acc * i + color) / (i + 1.)
-                });
-            if depth != 0 {
-//                let r = trace(&point.specular_ray(), world, depth - 1);
-//                let decay = point.object().decay();
-//                c * decay + r * (1. - decay)
-                c
-            } else {
-                c
-            }
+        .map(|hit| {
+            let obj = &hit.obj;
+            let traced = trace(&hit.out_ray(), world, depth - 1);
+            obj.material.render(&hit.info, world, traced)
         })
         .unwrap_or(Color::new(0., 0., 0.))
 }
