@@ -138,6 +138,14 @@ impl AddAssign<Self> for Vec3 {
     }
 }
 
+impl AddAssign<f32> for Vec3 {
+    fn add_assign(&mut self, rhs: f32) {
+        self.x += rhs;
+        self.y += rhs;
+        self.z += rhs;
+    }
+}
+
 impl Sub<Self> for Vec3 {
     type Output = Vec3;
 
@@ -179,6 +187,14 @@ impl SubAssign<Self> for Vec3 {
         self.x -= rhs.x;
         self.y -= rhs.y;
         self.z -= rhs.z;
+    }
+}
+
+impl SubAssign<f32> for Vec3 {
+    fn sub_assign(&mut self, rhs: f32) {
+        self.x -= rhs;
+        self.y -= rhs;
+        self.z -= rhs;
     }
 }
 
@@ -307,7 +323,7 @@ impl UlpsEq for Vec3 {
 
 macro_rules! max {
     ($a:expr) => {$a};
-    ($a:expr, $($b:expr)+) => {{
+    ($a:expr $(,$b:expr)+) => {{
         let t = max!($($b),*);
         if $a > t {
             $a
@@ -319,7 +335,7 @@ macro_rules! max {
 
 macro_rules! min {
     ($a:expr) => {$a};
-    ($a:expr, $($b:expr)+) => {{
+    ($a:expr $(,$b:expr)+) => {{
         let t = min!($($b),*);
         if $a < t {
             $a
@@ -353,6 +369,8 @@ pub fn gen_point_in_sphere(radius: f32) -> Vec3 {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
     #[test]
     fn test_vec3() {
         assert_relative_eq!(vec3!(1, 2, 3).dot(vec3!(5, 40, 200)), 685.);
@@ -377,5 +395,31 @@ mod test {
         assert_relative_eq!(5. * vec3!(1, 2, 3), vec3!(5, 10, 15));
         assert_relative_eq!(vec3!(10, 20, 30) / 5., vec3!(2, 4, 6));
         assert_relative_eq!(24. / vec3!(1, 2, 3), vec3!(24, 12, 8));
+
+        let mut v = vec3!(1, 2, 3);
+        v -= 10.;
+        assert_relative_eq!(v, vec3!(-9, -8, -7));
+        let mut v = vec3!(1, 2, 3);
+        v += 10.;
+        assert_relative_eq!(v, vec3!(11, 12, 13));
+        let mut v = vec3!(1, 2, 3);
+        v *= 10.;
+        assert_relative_eq!(v, vec3!(10, 20, 30));
+        let mut v = vec3!(1, 2, 3);
+        v /= 10.;
+        assert_relative_eq!(v, vec3!(0.1, 0.2, 0.3));
+    }
+
+    #[test]
+    fn test_min_max() {
+        assert_relative_eq!(5., min!(max!(0., 10., 20., 30.), min!(6., 9., 7.), 5.));
+    }
+
+    #[test]
+    fn test_gen_point_in_sphere() {
+        (0..100000).for_each(|_| {
+            let o = gen_point_in_sphere(5.);
+            assert!(o.dot(o) <= 25. + EPS);
+        })
     }
 }
