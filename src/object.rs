@@ -1,10 +1,10 @@
 use std::cmp;
 use std::rc::Rc;
 
-use light::LightSource;
-use material::Material;
-use ray::{HitInfo, HitRecord, Ray};
-use util::{EPS, Vec3};
+use crate::light::LightSource;
+use crate::material::Material;
+use crate::ray::{HitInfo, HitRecord, Ray};
+use crate::util::{EPS, Vec3};
 
 pub trait Shape {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo>;
@@ -275,9 +275,7 @@ impl World {
 
 #[cfg(test)]
 mod test {
-    use util::*;
-
-    use super::{Ray, Shape, Triangle};
+    use super::*;
 
     #[test]
     fn test_triangle() {

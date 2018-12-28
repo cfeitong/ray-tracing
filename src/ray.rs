@@ -3,10 +3,10 @@ use std::rc::Rc;
 
 use rand::prelude::*;
 
-use object::{Object, World};
-use object::RcObjectTrait;
-use util::{gen_point_in_sphere, Vec3};
-use util::EPS;
+use crate::object::{Object, World};
+use crate::object::RcObjectTrait;
+use crate::util::{gen_point_in_sphere, Vec3};
+use crate::util::EPS;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {

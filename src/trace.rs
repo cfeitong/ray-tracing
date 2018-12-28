@@ -1,6 +1,6 @@
-use object::World;
-use ray::Ray;
-use util::Color;
+use crate::object::World;
+use crate::ray::Ray;
+use crate::util::Color;
 
 pub fn trace(ray: &Ray, world: &World, depth: u32) -> Color {
     if depth == 0 {

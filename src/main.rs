@@ -1,9 +1,7 @@
-#![feature(box_syntax, arbitrary_self_types)]
+#![feature(uniform_paths)]
 
 #[macro_use]
 extern crate approx;
-extern crate image;
-extern crate rand;
 
 use image::{ImageBuffer, Rgb};
 
