@@ -1,13 +1,8 @@
-use std::borrow::Borrow;
-use std::rc::Rc;
-
-use crate::light::LightSource;
-use crate::object::World;
-use crate::ray::HitInfo;
-use crate::ray::HitRecord;
-use crate::trace::trace;
-use crate::util::Color;
-use crate::util::Vec3;
+use crate::{
+    object::World,
+    ray::HitInfo,
+    util::{Color, Vec3},
+};
 
 pub trait Material {
     fn render(&self, hit: &HitInfo, world: &World, traced: Color) -> Color;

@@ -1,10 +1,12 @@
 use std::cmp;
 use std::rc::Rc;
 
-use crate::light::LightSource;
-use crate::material::Material;
-use crate::ray::{HitInfo, HitRecord, Ray};
-use crate::util::{EPS, Vec3};
+use crate::{
+    light::LightSource,
+    material::Material,
+    ray::{HitInfo, HitRecord, Ray},
+    util::{Color, EPS, Vec3},
+};
 
 pub trait Shape {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo>;
@@ -270,6 +272,18 @@ impl World {
 
     pub fn add_light<T: LightSource + 'static>(&mut self, light: T) {
         self.lights.push(Rc::new(light));
+    }
+
+    pub fn trace(&self, ray: &Ray, depth: u32) -> Color {
+        if depth == 0 {
+            return Color::new(0., 0., 0.);
+        }
+        ray.hit(self)
+            .map(|hit| {
+                let traced = self.trace(&hit.out_ray(), depth - 1);
+                hit.obj.material.render(&hit.info, self, traced)
+            })
+            .unwrap_or(Color::new(0., 0., 0.))
     }
 }
 

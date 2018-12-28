@@ -3,9 +3,7 @@ use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use approx::AbsDiffEq;
-use approx::RelativeEq;
-use approx::UlpsEq;
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use image::{Pixel, Rgb};
 use rand::Rng;
 

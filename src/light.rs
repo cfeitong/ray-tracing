@@ -1,11 +1,8 @@
-use std::borrow::Borrow;
-
-use crate::object::World;
-use crate::ray::HitRecord;
-use crate::ray::Ray;
-use crate::util::Color;
-use crate::util::EPS;
-use crate::util::Vec3;
+use crate::{
+    object::World,
+    ray::{HitRecord, Ray},
+    util::{Color, EPS, Vec3},
+};
 
 pub trait LightSource {
     /// light intensity in [0, 1]

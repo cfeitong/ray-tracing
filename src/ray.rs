@@ -1,12 +1,11 @@
-use std::fmt::Debug;
 use std::rc::Rc;
 
 use rand::prelude::*;
 
-use crate::object::{Object, World};
-use crate::object::RcObjectTrait;
-use crate::util::{gen_point_in_sphere, Vec3};
-use crate::util::EPS;
+use crate::{
+    object::{Object, RcObjectTrait, World},
+    util::{EPS, gen_point_in_sphere, Vec3},
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
