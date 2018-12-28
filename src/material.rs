@@ -18,6 +18,7 @@ pub struct Diffuse {
     shininess: f32,
     reflection_param: f32,
     diffuse_param: f32,
+    color: Color,
 }
 
 impl Diffuse {
@@ -26,6 +27,7 @@ impl Diffuse {
             shininess: 1.,
             reflection_param: 0.5,
             diffuse_param: 0.5,
+            color: (1., 1., 1.).into(),
         }
     }
 
@@ -44,6 +46,11 @@ impl Diffuse {
         self
     }
 
+    pub fn with_color<T: Into<Vec3>>(mut self, color: T) -> Self {
+        self.color = color.into();
+        self
+    }
+
     pub fn shininess(&self) -> f32 {
         self.shininess
     }
@@ -59,7 +66,7 @@ impl Diffuse {
 
 impl Material for Diffuse {
     fn render(&self, hit: &HitInfo, world: &World, traced: Color) -> Color {
-        world
+        let c = world
             .lights
             .iter()
             .map(|light| {
@@ -77,7 +84,6 @@ impl Material for Diffuse {
                 // ambient illumination
                 let ai = 0.1;
 
-                let kr = self.reflection_param();
                 let kd = self.diffuse_param();
 
                 // light intensity
@@ -90,9 +96,11 @@ impl Material for Diffuse {
                     (si * 0.5 + di * 0.5 + ai) * li
                 };
 
-                kr * traced + kd * ti
+                kd * ti
             })
-            .sum()
+            .sum::<Vec3>();
+        let kr = self.reflection_param();
+        (c + kr * traced) * self.color
     }
 }
 
@@ -102,17 +110,15 @@ pub struct Specular {
 }
 
 impl Specular {
-    pub fn new(reflection_rate: f32) -> Specular {
-        Specular {
-            reflection_param: reflection_rate,
-        }
+    pub fn new(reflection_param: f32) -> Specular {
+        Specular { reflection_param }
     }
 
     pub fn reflection_param(&self) -> f32 {
         self.reflection_param
     }
 
-    pub fn absorption_rate(&self) -> f32 {
+    pub fn absorption_param(&self) -> f32 {
         1. - self.reflection_param
     }
 }
@@ -123,38 +129,25 @@ impl Material for Specular {
     }
 }
 
-pub struct Transparent {}
-//
-//pub fn render<Record, Light>(point: &Record, light: &Light) -> Color
-//{
-//    const SHININESS: f32 = 2.;
-//    let point = point.borrow();
-//    let pos = point.position();
-//    let light = light.borrow();
-//
-//    let rate1 = 1.;
-//    let rate2 = point.out_dir().dot(-light.dir_at(pos));
-//    let mut rate = rate1 * rate2.powf(SHININESS);
-//    rate = min!(rate, 1.);
-//    rate = max!(rate, 0.);
-//
-//    let specular_illumination = rate;
-//
-//    let diffuse_illumination = max!(point.normal().dot(-light.dir_at(pos)), 0.);
-//
-//    let ambient_illumination = 0.1;
-//
-//    (specular_illumination * 0.5 + diffuse_illumination * 0.5 + ambient_illumination)
-//        * light.intensity(pos)
-//        * light.color()
-//}
-//
-//pub fn render_by_normal<Hit, Light>(point: &Hit, _light: &Light) -> Color
-//    where
-//        Hit: Borrow<HitRecord>,
-//        Light: Borrow<dyn LightSource>,
-//{
-//    let n = point.borrow().normal();
-//    let n = vec3!(n.y, n.z, n.x);
-//    (n + 1.) / 2.
+pub struct Transparent {
+    reflection_param: f32,
+    refraction_param: f32,
+}
+
+impl Transparent {
+    pub fn reflection_param(&self) -> f32 {
+        self.reflection_param
+    }
+
+    pub fn refraction_param(&self) -> f32 {
+        self.refraction_param
+    }
+
+    pub fn absorption_param(&self) -> f32 {
+        1. - self.reflection_param - self.refraction_param
+    }
+}
+
+//impl Material for Transparent {
+//    fn render(&self, hit: &HitInfo, world: &World, traced: Color) -> Color {}
 //}

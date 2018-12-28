@@ -8,9 +8,7 @@ extern crate rand;
 use image::{ImageBuffer, Rgb};
 
 use light::ParallelLight;
-use light::PointLight;
 use material::Diffuse;
-use material::Specular;
 use object::{Cube, Sphere, Square, World};
 use ray::Camera;
 use trace::trace;
@@ -31,14 +29,14 @@ const SAMPLE_RATE: f32 = 20.;
 fn main() {
     let mut world = World::empty();
     let m = Diffuse::new();
-    let m2 = m.with_reflection_param(0.05);
-    world.add_obj(Sphere::new(vec3!(-0.55, 0., 0.5), 0.5), m2);
-    world.add_obj(Sphere::new(vec3!(0.55, 0., 0.5), 0.5), m2);
+    let m2 = m.with_diffuse_param(0.3).with_reflection_param(0.75);
+    world.add_obj(Sphere::new(vec3!(-0.55, 0., 0.5), 0.5), m2.with_color((0.3, 0.8, 0.2)));
+    world.add_obj(Sphere::new(vec3!(0.55, 0., 0.5), 0.5), m2.with_color((0.6, 0.2, 0.4)));
     world.add_obj(
         Square::new(vec3!(0, 0, 0), vec3!(1, 0, 0), vec3!(0, 1, 0), 5.),
-        m,
+        m.with_diffuse_param(0.6).with_reflection_param(0.05),
     );
-    world.add_light(ParallelLight::new(vec3!(1, 0, -1)));
+    world.add_light(ParallelLight::new(vec3!(0, 0, -1)));
 
     let camera =
         Camera::new(Vec3::new(-0.5, 2., 2.), Vec3::new(0., 0., 0.)).with_sample_rate(SAMPLE_RATE);

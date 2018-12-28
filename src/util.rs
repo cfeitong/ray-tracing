@@ -224,6 +224,18 @@ impl Mul<Vec3> for f32 {
     }
 }
 
+impl Mul<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        Vec3 {
+            x: rhs.x * self.x,
+            y: rhs.y * self.y,
+            z: rhs.z * self.z,
+        }
+    }
+}
+
 impl<T: Into<f32>> MulAssign<T> for Vec3 {
     fn mul_assign(&mut self, rhs: T) {
         let v = rhs.into();
@@ -254,6 +266,18 @@ impl Div<Vec3> for f32 {
             x: self / rhs.x,
             y: self / rhs.y,
             z: self / rhs.z,
+        }
+    }
+}
+
+impl Div<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn div(self, rhs: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.x / rhs.x,
+            y: self.y / rhs.y,
+            z: self.z / rhs.z,
         }
     }
 }
@@ -397,6 +421,9 @@ mod test {
         assert_relative_eq!(vec3!(1, 2, 3) - 10., vec3!(-9, -8, -7));
         assert_relative_eq!(vec3!(10, 100, 1000) - vec3!(1, 2, 3), -vec3!(-9, -98, -997));
         assert_relative_eq!(10. - vec3!(1, 2, 3), -vec3!(-9, -8, -7));
+
+        assert_relative_eq!(vec3!(5,6,9) * vec3!(1, 2, 3), vec3!(5, 12, 27));
+        assert_relative_eq!(vec3!(1,1,1) / vec3!(1, 2, 3), vec3!(1, 0.5, 1./3.));
 
         assert_relative_eq!(vec3!(1, 2, 3) * 5., vec3!(5, 10, 15));
         assert_relative_eq!(5. * vec3!(1, 2, 3), vec3!(5, 10, 15));
