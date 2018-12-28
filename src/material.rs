@@ -124,7 +124,7 @@ impl Specular {
 }
 
 impl Material for Specular {
-    fn render(&self, hit: &HitInfo, world: &World, traced: Color) -> Color {
+    fn render(&self, _hit: &HitInfo, _world: &World, traced: Color) -> Color {
         self.reflection_param * traced
     }
 }

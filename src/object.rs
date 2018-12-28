@@ -246,7 +246,7 @@ impl Shape for Sphere {
         let point = ray.pos + ray.dir * t;
         let norm = (point - self.center).normalize();
         let norm_proj = ray.dir.proj_to(norm);
-        let dir = ray.dir - 2. * norm_proj;
+        let _dir = ray.dir - 2. * norm_proj;
         Some(HitInfo::new(t, norm, point, ray.dir))
     }
 }

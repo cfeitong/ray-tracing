@@ -422,8 +422,8 @@ mod test {
         assert_relative_eq!(vec3!(10, 100, 1000) - vec3!(1, 2, 3), -vec3!(-9, -98, -997));
         assert_relative_eq!(10. - vec3!(1, 2, 3), -vec3!(-9, -8, -7));
 
-        assert_relative_eq!(vec3!(5,6,9) * vec3!(1, 2, 3), vec3!(5, 12, 27));
-        assert_relative_eq!(vec3!(1,1,1) / vec3!(1, 2, 3), vec3!(1, 0.5, 1./3.));
+        assert_relative_eq!(vec3!(5, 6, 9) * vec3!(1, 2, 3), vec3!(5, 12, 27));
+        assert_relative_eq!(vec3!(1, 1, 1) / vec3!(1, 2, 3), vec3!(1, 0.5, 1. / 3.));
 
         assert_relative_eq!(vec3!(1, 2, 3) * 5., vec3!(5, 10, 15));
         assert_relative_eq!(5. * vec3!(1, 2, 3), vec3!(5, 10, 15));
