@@ -14,11 +14,11 @@ pub trait Shape {
 
 impl<T: Shape> Shape for AsRef<T> {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
-        self.hit_info(ray)
+        self.as_ref().hit_info(ray)
     }
 }
 
-pub trait RcObjectTrait {
+pub trait RcObjectExt {
     fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
 }
 
@@ -40,7 +40,7 @@ impl Object {
     }
 }
 
-impl RcObjectTrait for Rc<Object> {
+impl RcObjectExt for Rc<Object> {
     fn hit_by(&self, ray: &Ray) -> Option<HitRecord> {
         self.shape.hit_info(ray).map(|info| HitRecord {
             obj: self.clone(),
@@ -126,7 +126,10 @@ pub struct Square {
 }
 
 impl Square {
-    pub fn new(center: Vec3, x: Vec3, y: Vec3, len: f32) -> Square {
+    pub fn new<T: Into<Vec3>>(center: T, x: T, y: T, len: f32) -> Square {
+        let center = center.into();
+        let x = x.into();
+        let y = y.into();
         let x2 = x * len / 2.;
         let y2 = y * len / 2.;
         let p0 = center - x2 + y2;
@@ -180,7 +183,10 @@ pub struct Cube {
 }
 
 impl Cube {
-    pub fn new(center: Vec3, x: Vec3, y: Vec3, len: f32) -> Self {
+    pub fn new<T: Into<Vec3>>(center: T, x: T, _y: T, len: f32) -> Self {
+        let center = center.into();
+        let x = x.into();
+        let y = x.into();
         Cube { center, x, y, len }
     }
 
@@ -222,9 +228,9 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(o: Vec3, r: f32) -> Self {
+    pub fn new<T: Into<Vec3>>(o: T, r: f32) -> Self {
         Sphere {
-            center: o,
+            center: o.into(),
             radius: r,
         }
     }
@@ -280,8 +286,14 @@ impl World {
         }
         ray.hit(self)
             .map(|hit| {
-                let traced = self.trace(&hit.out_ray(), depth - 1);
-                hit.obj.material.render(&hit.info, self, traced)
+                let m = &hit.obj.material;
+                let info = &hit.info;
+                let traced: Vec<_> = m
+                    .rays_to_trace(info)
+                    .into_iter()
+                    .map(|ray| self.trace(&ray, depth - 1))
+                    .collect();
+                m.render(info, self, &traced)
             })
             .unwrap_or(Color::new(0., 0., 0.))
     }
@@ -296,7 +308,7 @@ mod test {
         let tri = Triangle::new(vec3!(0, -1, 0), vec3!(1, 1, 0), vec3!(-1, 1, 0));
         let ray0 = Ray::new(vec3!(0, 0, 1), vec3!(0, 0, -1));
         let info = tri.hit_info(&ray0).unwrap();
-        assert_relative_eq!(info.hit_point, EPS * info.out_dir + vec3!(0, 0, 0));
+        assert_relative_eq!(info.position(), EPS * info.out_dir + vec3!(0, 0, 0));
         assert_relative_eq!(info.out_dir, vec3!(0, 0, 1));
         assert_relative_eq!(info.norm, vec3!(0, 0, 1));
 

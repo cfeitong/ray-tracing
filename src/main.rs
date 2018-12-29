@@ -11,6 +11,8 @@ use object::{Cube, Sphere, Square, World};
 use ray::Camera;
 use util::{Vec3, vec3_to_rgb};
 
+use crate::material::Transparent;
+
 #[macro_use]
 mod util;
 mod light;
@@ -24,24 +26,26 @@ const SAMPLE_RATE: f32 = 20.;
 
 fn main() {
     let mut world = World::empty();
-    let m = Diffuse::new();
-    let m2 = m.with_diffuse_param(0.3).with_reflection_param(0.75);
+    let m1 = Diffuse::new();
+    let m2 = m1.with_diffuse(0.3);
+    let m3 = Transparent::new(0.0, 0.3);
     world.add_obj(
-        Sphere::new(vec3!(-0.55, 0., 0.5), 0.5),
+        Sphere::new((-0.55, 0., 0.5), 0.5),
         m2.with_color((0.3, 0.8, 0.2)),
     );
     world.add_obj(
-        Sphere::new(vec3!(0.55, 0., 0.5), 0.5),
+        Sphere::new((0.55, 0., 0.5), 0.5),
         m2.with_color((0.6, 0.2, 0.4)),
     );
+    world.add_obj(Sphere::new((0., 1., 1.), 0.2), m3);
     world.add_obj(
         Square::new(vec3!(0, 0, 0), vec3!(1, 0, 0), vec3!(0, 1, 0), 500.),
-        m.with_diffuse_param(0.6).with_reflection_param(0.05),
+        m1.with_diffuse(0.6),
     );
     world.add_light(ParallelLight::new(vec3!(0, 0, -1)));
 
     let camera =
-        Camera::new(Vec3::new(-0.5, 2., 2.), Vec3::new(0., 0., 0.)).with_sample_rate(SAMPLE_RATE);
+        Camera::new(Vec3::new(-0.0, 2., 1.5), Vec3::new(0., 0., 0.)).with_sample_rate(SAMPLE_RATE);
     let mut raw = vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize];
     for (w, h, ray) in camera.emit_rays(WIDTH, HEIGHT) {
         let pixel = world.trace(&ray, 10);

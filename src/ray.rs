@@ -3,7 +3,7 @@ use std::rc::Rc;
 use rand::prelude::*;
 
 use crate::{
-    object::{Object, RcObjectTrait, World},
+    object::{Object, RcObjectExt, World},
     util::{EPS, gen_point_in_sphere, Vec3},
 };
 
@@ -171,7 +171,7 @@ impl HitRecord {
     }
 
     pub fn out_ray(&self) -> Ray {
-        self.info.out_ray()
+        self.info.reflect()
     }
 }
 
@@ -179,19 +179,18 @@ impl HitRecord {
 pub struct HitInfo {
     pub distance: f32,
     pub norm: Vec3,
-    pub hit_point: Vec3,
+    hit_point: Vec3,
     pub in_dir: Vec3,
     pub out_dir: Vec3,
 }
 
 impl HitInfo {
-    pub fn new(distance: f32, norm: Vec3, mut hit_point: Vec3, in_dir: Vec3) -> HitInfo {
+    pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, in_dir: Vec3) -> HitInfo {
         let mut norm = norm.normalize();
         if norm.dot(in_dir) > -EPS {
             norm = -norm;
         }
         let out_dir = in_dir - 2. * in_dir.proj_to(norm);
-        hit_point += EPS * out_dir;
         HitInfo {
             distance,
             norm,
@@ -201,10 +200,30 @@ impl HitInfo {
         }
     }
 
-    pub fn out_ray(&self) -> Ray {
+    pub fn reflect(&self) -> Ray {
         Ray {
-            pos: self.hit_point,
+            pos: self.position(),
             dir: self.out_dir,
         }
+    }
+
+    pub fn position(&self) -> Vec3 {
+        self.hit_point + EPS * self.out_dir
+    }
+
+    pub fn in_ray(&self) -> Ray {
+        Ray {
+            pos: self.hit_point,
+            dir: self.in_dir,
+        }
+    }
+
+    // ratio = 1 / index of refraction
+    pub fn refract(&self, ratio: f32) -> Ray {
+        let cos = self.in_dir.dot(self.norm);
+        let dir = -self.norm * (1. - ratio.powi(2) * (1. - cos.powi(2)))
+            + ratio * (self.in_dir + cos * self.norm);
+        let pos = self.hit_point + EPS * dir;
+        Ray { pos, dir }
     }
 }
