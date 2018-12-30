@@ -12,14 +12,15 @@ pub trait Shape {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo>;
 }
 
+pub trait RcObjectExt {
+    fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
+}
+
+
 impl<T: Shape> Shape for AsRef<T> {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         self.as_ref().hit_info(ray)
     }
-}
-
-pub trait RcObjectExt {
-    fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
 }
 
 pub struct Object {
@@ -57,21 +58,22 @@ pub struct Triangle {
 }
 
 impl Triangle {
-    pub fn new(p0: Vec3, p1: Vec3, p2: Vec3) -> Triangle {
-        Triangle { p0, p1, p2 }
+    pub fn new<T: Into<Vec3>>(p0: T, p1: T, p2: T) -> Triangle {
+        Triangle { p0: p0.into(), p1: p1.into(), p2: p2.into() }
     }
 
     pub fn normal(&self) -> Vec3 {
         let Self { p0, p1, p2 } = self;
-        (*p1 - *p0).cross(*p2 - *p0).normalize()
+        (*p1 - *p0).cross(*p2 - *p0).unit()
     }
 
-    pub fn is_in_plane(&self, point: Vec3) -> bool {
-        let v = self.p0 - point;
+    pub fn is_in_plane<T: Into<Vec3>>(&self, point: T) -> bool {
+        let v = self.p0 - point.into();
         v.dot(self.normal()).abs() < EPS
     }
 
-    pub fn contain(&self, point: Vec3) -> bool {
+    pub fn contain<T: Into<Vec3>>(&self, point: T) -> bool {
+        let point = point.into();
         if !self.is_in_plane(point) {
             return false;
         }
@@ -109,7 +111,7 @@ impl Shape for Triangle {
         if t > EPS {
             Some(HitInfo::new(
                 t,
-                e1.cross(e2).normalize(),
+                e1.cross(e2).unit(),
                 t * ray.dir + ray.pos,
                 ray.dir,
             ))
@@ -191,9 +193,9 @@ impl Cube {
     }
 
     fn squares(&self) -> Vec<Square> {
-        let x = self.x.normalize();
-        let y = self.y.normalize();
-        let z = x.cross(y).normalize();
+        let x = self.x.unit();
+        let y = self.y.unit();
+        let z = x.cross(y).unit();
         let c = self.center;
         let len = self.len;
         let mut result = Vec::<Square>::new();
@@ -214,8 +216,8 @@ impl Shape for Cube {
             .iter()
             .filter_map(|square| square.hit_info(ray))
             .min_by(|r1, r2| {
-                let d1 = r1.distance;
-                let d2 = r2.distance;
+                let d1 = r1.distance();
+                let d2 = r2.distance();
                 d1.partial_cmp(&d2).unwrap_or(cmp::Ordering::Equal)
             })
     }
@@ -252,7 +254,7 @@ impl Shape for Sphere {
         }
         let t = if t1 < 0. { t2 } else { t1 };
         let point = ray.pos + ray.dir * t;
-        let norm = (point - self.center).normalize();
+        let norm = (point - self.center).unit();
         let norm_proj = ray.dir.proj_to(norm);
         let _dir = ray.dir - 2. * norm_proj;
         Some(HitInfo::new(t, norm, point, ray.dir))
@@ -295,7 +297,9 @@ impl World {
                     .collect();
                 m.render(info, self, &traced)
             })
-            .unwrap_or(Color::new(0., 0., 0.))
+            .unwrap_or_else(|| {
+                self.lights.iter().map(|light| light.looked(ray)).sum()
+            })
     }
 }
 
@@ -308,9 +312,9 @@ mod test {
         let tri = Triangle::new(vec3!(0, -1, 0), vec3!(1, 1, 0), vec3!(-1, 1, 0));
         let ray0 = Ray::new(vec3!(0, 0, 1), vec3!(0, 0, -1));
         let info = tri.hit_info(&ray0).unwrap();
-        assert_relative_eq!(info.position(), EPS * info.out_dir + vec3!(0, 0, 0));
-        assert_relative_eq!(info.out_dir, vec3!(0, 0, 1));
-        assert_relative_eq!(info.norm, vec3!(0, 0, 1));
+        assert_relative_eq!(info.pos(), EPS * info.out_dir() + vec3!(0, 0, 0));
+        assert_relative_eq!(info.out_dir(), vec3!(0, 0, 1));
+        assert_relative_eq!(info.normal(), vec3!(0, 0, 1));
 
         let ray1 = Ray::new(vec3!(3, 0, 1), vec3!(0, 0, -1));
         assert!(tri.hit_info(&ray1).is_none());

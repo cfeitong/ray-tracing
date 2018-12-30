@@ -29,7 +29,7 @@ impl Ray {
     pub fn new(pos: Vec3, dir: Vec3) -> Self {
         Ray {
             pos,
-            dir: dir.normalize(),
+            dir: dir.unit(),
         }
     }
 }
@@ -50,9 +50,9 @@ impl Camera {
 
     /// adjust this camera to look at `point`.
     pub fn look(&mut self, point: Vec3) {
-        self.sight = (point - self.pos).normalize();
+        self.sight = (point - self.pos).unit();
         let right = self.right();
-        self.up = right.cross(self.sight).normalize();
+        self.up = right.cross(self.sight).unit();
     }
 
     /// return up direction of this camera.
@@ -62,7 +62,7 @@ impl Camera {
 
     /// return right direction of this camera.
     pub fn right(&self) -> Vec3 {
-        self.sight.cross(self.up).normalize()
+        self.sight.cross(self.up).unit()
     }
 
     /// emit needed ray through a 1 unit away square screen whose size is 2 unit.
@@ -121,7 +121,7 @@ impl HitRecord {
         hit_point: Vec3,
         in_dir: Vec3,
     ) -> HitRecord {
-        let norm = norm.normalize();
+        let norm = norm.unit();
         HitRecord {
             obj,
             info: HitInfo::new(distance, norm, hit_point, in_dir),
@@ -149,20 +149,20 @@ impl HitRecord {
     }
 
     pub fn specular_ray(&self) -> Ray {
-        let pos = self.position();
+        let pos = self.pos();
         Ray::new(pos, self.info.out_dir)
     }
 
     pub fn diffuse_ray(&self) -> Ray {
-        let pos = self.position();
+        let pos = self.pos();
         let o = pos + self.info.norm;
         let p = gen_point_in_sphere(1.);
         let t = o + p;
-        let dir = (t - pos).normalize();
+        let dir = (t - pos).unit();
         Ray::new(pos, dir)
     }
 
-    pub fn position(&self) -> Vec3 {
+    pub fn pos(&self) -> Vec3 {
         self.info.hit_point
     }
 
@@ -177,16 +177,16 @@ impl HitRecord {
 
 #[derive(Clone, Copy)]
 pub struct HitInfo {
-    pub distance: f32,
-    pub norm: Vec3,
+    distance: f32,
+    norm: Vec3,
     hit_point: Vec3,
-    pub in_dir: Vec3,
-    pub out_dir: Vec3,
+    in_dir: Vec3,
+    out_dir: Vec3,
 }
 
 impl HitInfo {
     pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, in_dir: Vec3) -> HitInfo {
-        let mut norm = norm.normalize();
+        let mut norm = norm.unit();
         if norm.dot(in_dir) > -EPS {
             norm = -norm;
         }
@@ -200,14 +200,21 @@ impl HitInfo {
         }
     }
 
-    pub fn reflect(&self) -> Ray {
-        Ray {
-            pos: self.position(),
-            dir: self.out_dir,
-        }
+    pub fn distance(&self) -> f32 {
+        self.distance
+    }
+    pub fn normal(&self) -> Vec3 {
+        self.norm
+    }
+    pub fn in_dir(&self) -> Vec3 {
+        self.in_dir
+    }
+    pub fn out_dir(&self) -> Vec3 {
+        self.out_dir
     }
 
-    pub fn position(&self) -> Vec3 {
+
+    pub fn pos(&self) -> Vec3 {
         self.hit_point + EPS * self.out_dir
     }
 
@@ -215,6 +222,13 @@ impl HitInfo {
         Ray {
             pos: self.hit_point,
             dir: self.in_dir,
+        }
+    }
+
+    pub fn reflect(&self) -> Ray {
+        Ray {
+            pos: self.pos(),
+            dir: self.out_dir,
         }
     }
 

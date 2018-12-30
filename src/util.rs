@@ -9,6 +9,7 @@ use rand::Rng;
 
 pub const EPS: f32 = 1e-3;
 
+// TODO: replace with tuple
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub struct Vec3 {
     pub x: f32,
@@ -43,7 +44,7 @@ impl Vec3 {
         }
     }
 
-    pub fn normalize(self) -> Vec3 {
+    pub fn unit(self) -> Vec3 {
         self / self.len()
     }
 
@@ -56,7 +57,7 @@ impl Vec3 {
     }
 
     pub fn proj_to(self, rhs: Self) -> Self {
-        let n = rhs.normalize();
+        let n = rhs.unit();
         n * self.dot(n)
     }
 
@@ -67,7 +68,7 @@ impl Vec3 {
     }
 
     pub fn mid_vec(self, rhs: Self) -> Self {
-        (self.normalize() + rhs.normalize()).normalize()
+        (self.unit() + rhs.unit()).unit()
     }
 
     pub fn is_parallel(self, rhs: Self) -> bool {

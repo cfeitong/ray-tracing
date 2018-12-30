@@ -6,12 +6,12 @@ extern crate approx;
 use image::{ImageBuffer, Rgb};
 
 use light::ParallelLight;
-use material::Diffuse;
+use material::{Diffuse, Metal, Transparent};
 use object::{Cube, Sphere, Square, World};
 use ray::Camera;
 use util::{Vec3, vec3_to_rgb};
 
-use crate::material::Transparent;
+use crate::light::SkyLight;
 
 #[macro_use]
 mod util;
@@ -31,7 +31,7 @@ fn main() {
     let m3 = Transparent::new(0.0, 0.3);
     world.add_obj(
         Sphere::new((-0.55, 0., 0.5), 0.5),
-        m2.with_color((0.3, 0.8, 0.2)),
+        Metal::new(),
     );
     world.add_obj(
         Sphere::new((0.55, 0., 0.5), 0.5),
@@ -39,10 +39,11 @@ fn main() {
     );
     world.add_obj(Sphere::new((0., 1., 1.), 0.2), m3);
     world.add_obj(
-        Square::new(vec3!(0, 0, 0), vec3!(1, 0, 0), vec3!(0, 1, 0), 500.),
+        Square::new(vec3!(0, 0, 0), vec3!(1, 0, 0), vec3!(0, 1, 0), 5.),
         m1.with_diffuse(0.6),
     );
-    world.add_light(ParallelLight::new(vec3!(0, 0, -1)));
+//    world.add_light(ParallelLight::new(vec3!(0, 0, -1)));
+    world.add_light(SkyLight);
 
     let camera =
         Camera::new(Vec3::new(-0.0, 2., 1.5), Vec3::new(0., 0., 0.)).with_sample_rate(SAMPLE_RATE);
