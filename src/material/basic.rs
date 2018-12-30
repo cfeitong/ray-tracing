@@ -69,7 +69,6 @@ impl Material for Diffuse {
                 // ambient illumination
                 let ai = 0.1;
 
-
                 // light intensity
                 let li = info.intensity() * info.color();
 

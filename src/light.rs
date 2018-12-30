@@ -1,9 +1,6 @@
 use crate::{
     object::World,
-    ray::{
-        HitInfo,
-        Ray,
-    },
+    ray::{HitInfo, Ray},
     util::{Color, EPS, Vec3},
 };
 
@@ -14,7 +11,7 @@ pub trait LightSource {
     fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool;
     fn color(&self, dir: &HitInfo) -> Color;
 
-    fn looked(&self, ray: &Ray) -> Color {
+    fn looked(&self, _ray: &Ray) -> Color {
         (0., 0., 0.).into()
     }
 
@@ -27,7 +24,6 @@ pub trait LightSource {
     }
 }
 
-
 pub struct LightInfo<'a> {
     light: &'a dyn LightSource,
     hit: &'a HitInfo,
@@ -35,12 +31,12 @@ pub struct LightInfo<'a> {
 }
 
 impl LightInfo<'_> {
-    pub fn new<'a>(light: &'a dyn LightSource, hit: &'a HitInfo, world: &'a World) -> LightInfo<'a> {
-        LightInfo {
-            light,
-            hit,
-            world,
-        }
+    pub fn new<'a>(
+        light: &'a dyn LightSource,
+        hit: &'a HitInfo,
+        world: &'a World,
+    ) -> LightInfo<'a> {
+        LightInfo { light, hit, world }
     }
 
     pub fn intensity(&self) -> f32 {
@@ -85,10 +81,10 @@ impl ParallelLight {
 }
 
 impl LightSource for ParallelLight {
-    fn intensity(&self, hit: &HitInfo) -> f32 {
+    fn intensity(&self, _hit: &HitInfo) -> f32 {
         1.
     }
-    fn dir_at(&self, hit: &HitInfo) -> Vec3 {
+    fn dir_at(&self, _hit: &HitInfo) -> Vec3 {
         self.dir
     }
     fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool {
@@ -155,7 +151,7 @@ pub struct SkyLight;
 
 impl SkyLight {
     fn color_from(&self, dir: Vec3) -> Color {
-        let t = 0.5 * (dir.y + 1.0);
+        let t = 0.5 * (dir.z + 1.0);
         let v = 1.0 - t;
 
         let a = v * vec3!(1.0, 1.0, 1.0);
@@ -165,7 +161,7 @@ impl SkyLight {
 }
 
 impl LightSource for SkyLight {
-    fn intensity(&self, hit: &HitInfo) -> f32 {
+    fn intensity(&self, _hit: &HitInfo) -> f32 {
         1.
     }
 
@@ -183,6 +179,6 @@ impl LightSource for SkyLight {
     }
 
     fn looked(&self, ray: &Ray) -> Color {
-        self.color_from(ray.dir)
+        self.color_from(ray.dir())
     }
 }

@@ -1,9 +1,6 @@
 use crate::{
     object::World,
-    ray::{
-        HitInfo,
-        Ray,
-    },
+    ray::{HitInfo, Ray},
     util::Color,
 };
 use crate::util::gen_point_in_sphere;
@@ -32,7 +29,7 @@ impl Material for Metal {
     }
     fn rays_to_trace(&self, hit: &HitInfo) -> Vec<Ray> {
         let mut r = hit.reflect();
-        r.dir = (r.dir + gen_point_in_sphere(0.1)).unit();
+        r.dir = (r.dir() + gen_point_in_sphere(0.1)).unit();
         vec![r]
     }
 }

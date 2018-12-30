@@ -1,13 +1,13 @@
-use std::{f32, u8};
-use std::fmt;
-use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::{
+    f32, fmt,
+    iter::Sum,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+};
 
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
-use image::{Pixel, Rgb};
 use rand::Rng;
 
-pub const EPS: f32 = 1e-3;
+pub(crate) const EPS: f32 = 1e-3;
 
 // TODO: replace with tuple
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
@@ -76,6 +76,7 @@ impl Vec3 {
     }
 }
 
+#[macro_export]
 macro_rules! vec3 {
     ($x:expr, $y:expr, $z:expr) => {
         $crate::util::Vec3::new($x as f32, $y as f32, $z as f32)
@@ -351,6 +352,7 @@ impl Sum for Vec3 {
     }
 }
 
+#[macro_export]
 macro_rules! max {
     ($a:expr) => {$a};
     ($a:expr $(,$b:expr)+) => {{
@@ -363,6 +365,7 @@ macro_rules! max {
     }}
 }
 
+#[macro_export]
 macro_rules! min {
     ($a:expr) => {$a};
     ($a:expr $(,$b:expr)+) => {{
@@ -377,14 +380,7 @@ macro_rules! min {
 
 pub type Color = Vec3;
 
-pub fn vec3_to_rgb(c: Color) -> Rgb<u8> {
-    let r = (255.99 * max!(0., min!(1., c.x))) as u8;
-    let g = (255.99 * max!(0., min!(1., c.y))) as u8;
-    let b = (255.99 * max!(0., min!(1., c.z))) as u8;
-    *Rgb::from_slice(&[r, g, b])
-}
-
-pub fn gen_point_in_sphere(radius: f32) -> Vec3 {
+pub(crate) fn gen_point_in_sphere(radius: f32) -> Vec3 {
     let mut rng = rand::thread_rng();
     let r = radius;
     let theta: f32 = rng.gen_range(0., 2. * f32::consts::PI);

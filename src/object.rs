@@ -16,7 +16,6 @@ pub trait RcObjectExt {
     fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
 }
 
-
 impl<T: Shape> Shape for AsRef<T> {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         self.as_ref().hit_info(ray)
@@ -59,7 +58,11 @@ pub struct Triangle {
 
 impl Triangle {
     pub fn new<T: Into<Vec3>>(p0: T, p1: T, p2: T) -> Triangle {
-        Triangle { p0: p0.into(), p1: p1.into(), p2: p2.into() }
+        Triangle {
+            p0: p0.into(),
+            p1: p1.into(),
+            p2: p2.into(),
+        }
     }
 
     pub fn normal(&self) -> Vec3 {
@@ -91,19 +94,19 @@ impl Shape for Triangle {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         let e1 = self.p1 - self.p0;
         let e2 = self.p2 - self.p0;
-        let h = ray.dir.cross(e2);
+        let h = ray.dir().cross(e2);
         let a = e1.dot(h);
         if -EPS < a && a < EPS {
             return None;
         }
         let f = 1. / a;
-        let s = ray.pos - self.p0;
+        let s = ray.pos() - self.p0;
         let u = f * s.dot(h);
         if u < 0. || u > 1. {
             return None;
         }
         let q = s.cross(e1);
-        let v = f * ray.dir.dot(q);
+        let v = f * ray.dir().dot(q);
         if v < 0. || u + v > 1. {
             return None;
         }
@@ -112,8 +115,8 @@ impl Shape for Triangle {
             Some(HitInfo::new(
                 t,
                 e1.cross(e2).unit(),
-                t * ray.dir + ray.pos,
-                ray.dir,
+                t * ray.dir() + ray.pos(),
+                ray.dir(),
             ))
         } else {
             None
@@ -122,6 +125,7 @@ impl Shape for Triangle {
 }
 
 #[derive(Debug)]
+
 pub struct Square {
     tri0: Triangle,
     tri1: Triangle,
@@ -177,6 +181,7 @@ impl Shape for Square {
 }
 
 #[derive(Debug)]
+
 pub struct Cube {
     pub center: Vec3,
     pub x: Vec3,
@@ -240,9 +245,9 @@ impl Sphere {
 
 impl Shape for Sphere {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
-        let a = ray.dir.len2();
-        let b = 2. * (ray.pos - self.center).dot(ray.dir);
-        let c = (ray.pos - self.center).len2() - self.radius.powi(2);
+        let a = ray.dir().len2();
+        let b = 2. * (ray.pos() - self.center).dot(ray.dir());
+        let c = (ray.pos() - self.center).len2() - self.radius.powi(2);
         let delta = b.powi(2) - 4. * a * c;
         if delta < 0. {
             return None;
@@ -253,11 +258,11 @@ impl Shape for Sphere {
             return None;
         }
         let t = if t1 < 0. { t2 } else { t1 };
-        let point = ray.pos + ray.dir * t;
+        let point = ray.pos() + ray.dir() * t;
         let norm = (point - self.center).unit();
-        let norm_proj = ray.dir.proj_to(norm);
-        let _dir = ray.dir - 2. * norm_proj;
-        Some(HitInfo::new(t, norm, point, ray.dir))
+        let norm_proj = ray.dir().proj_to(norm);
+        let _dir = ray.dir() - 2. * norm_proj;
+        Some(HitInfo::new(t, norm, point, ray.dir()))
     }
 }
 
@@ -297,9 +302,7 @@ impl World {
                     .collect();
                 m.render(info, self, &traced)
             })
-            .unwrap_or_else(|| {
-                self.lights.iter().map(|light| light.looked(ray)).sum()
-            })
+            .unwrap_or_else(|| self.lights.iter().map(|light| light.looked(ray)).sum())
     }
 }
 

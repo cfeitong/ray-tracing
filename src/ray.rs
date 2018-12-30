@@ -9,8 +9,8 @@ use crate::{
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
-    pub pos: Vec3,
-    pub dir: Vec3,
+    pub(crate) pos: Vec3,
+    pub(crate) dir: Vec3,
 }
 
 impl Ray {
@@ -31,6 +31,14 @@ impl Ray {
             pos,
             dir: dir.unit(),
         }
+    }
+
+    pub fn pos(&self) -> Vec3 {
+        self.pos
+    }
+
+    pub fn dir(&self) -> Vec3 {
+        self.dir
     }
 }
 
@@ -212,7 +220,6 @@ impl HitInfo {
     pub fn out_dir(&self) -> Vec3 {
         self.out_dir
     }
-
 
     pub fn pos(&self) -> Vec3 {
         self.hit_point + EPS * self.out_dir

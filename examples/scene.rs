@@ -1,48 +1,43 @@
-#![feature(uniform_paths)]
-
 #[macro_use]
-extern crate approx;
+extern crate cft_ray_tracer as raytracer;
+extern crate image;
 
-use image::{ImageBuffer, Rgb};
+use image::{ImageBuffer, Pixel, Rgb};
 
-use light::ParallelLight;
-use material::{Diffuse, Metal, Transparent};
-use object::{Cube, Sphere, Square, World};
-use ray::Camera;
-use util::{Vec3, vec3_to_rgb};
-
-use crate::light::SkyLight;
-
-#[macro_use]
-mod util;
-mod light;
-mod material;
-mod object;
-mod ray;
+use raytracer::{
+    Camera,
+    Color,
+    light::SkyLight,
+    material::{Diffuse, Metal, Transparent}, object::{Sphere, Square, World}, Vec3,
+};
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
 const SAMPLE_RATE: f32 = 20.;
 
+fn vec3_to_rgb(c: Color) -> Rgb<u8> {
+    let r = (255.99 * max!(0., min!(1., c.x))) as u8;
+    let g = (255.99 * max!(0., min!(1., c.y))) as u8;
+    let b = (255.99 * max!(0., min!(1., c.z))) as u8;
+    *Rgb::from_slice(&[r, g, b])
+}
+
 fn main() {
     let mut world = World::empty();
     let m1 = Diffuse::new();
     let m2 = m1.with_diffuse(0.3);
-    let m3 = Transparent::new(0.0, 0.3);
-    world.add_obj(
-        Sphere::new((-0.55, 0., 0.5), 0.5),
-        Metal::new(),
-    );
+    let m3 = Transparent::new(0.0, 0.8);
+    world.add_obj(Sphere::new((-0.55, 0., 0.5), 0.5), Metal::new());
     world.add_obj(
         Sphere::new((0.55, 0., 0.5), 0.5),
         m2.with_color((0.6, 0.2, 0.4)),
     );
-    world.add_obj(Sphere::new((0., 1., 1.), 0.2), m3);
+    world.add_obj(Sphere::new((0., 1., 0.3), 0.2), m3);
     world.add_obj(
         Square::new(vec3!(0, 0, 0), vec3!(1, 0, 0), vec3!(0, 1, 0), 5.),
         m1.with_diffuse(0.6),
     );
-//    world.add_light(ParallelLight::new(vec3!(0, 0, -1)));
+    //    world.add_light(ParallelLight::new(vec3!(0, 0, -1)));
     world.add_light(SkyLight);
 
     let camera =

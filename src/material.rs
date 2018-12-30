@@ -1,9 +1,6 @@
 use crate::{
     object::World,
-    ray::{
-        HitInfo,
-        Ray,
-    },
+    ray::{HitInfo, Ray},
     util::Color,
 };
 
@@ -19,5 +16,3 @@ pub trait Material {
         vec![hit.reflect()]
     }
 }
-
-
