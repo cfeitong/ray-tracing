@@ -127,25 +127,25 @@ impl HitRecord {
         distance: f32,
         norm: Vec3,
         hit_point: Vec3,
-        in_dir: Vec3,
+        dir_in: Vec3,
     ) -> HitRecord {
         let norm = norm.unit();
         HitRecord {
             obj,
-            info: HitInfo::new(distance, norm, hit_point, in_dir),
+            info: HitInfo::new(distance, norm, hit_point, dir_in),
         }
     }
 
     pub fn angle(&self) -> f32 {
-        self.out_dir().dot(self.info.norm).acos()
+        self.dir_out().dot(self.info.norm).acos()
     }
 
-    pub fn out_dir(&self) -> Vec3 {
-        self.info.out_dir
+    pub fn dir_out(&self) -> Vec3 {
+        self.info.dir_out
     }
 
-    pub fn in_dir(&self) -> Vec3 {
-        self.info.in_dir
+    pub fn dir_in(&self) -> Vec3 {
+        self.info.dir_in
     }
 
     pub fn object(&self) -> Rc<Object> {
@@ -158,7 +158,7 @@ impl HitRecord {
 
     pub fn specular_ray(&self) -> Ray {
         let pos = self.pos();
-        Ray::new(pos, self.info.out_dir)
+        Ray::new(pos, self.info.dir_out)
     }
 
     pub fn diffuse_ray(&self) -> Ray {
@@ -183,68 +183,90 @@ impl HitRecord {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct HitInfo {
     distance: f32,
     norm: Vec3,
     hit_point: Vec3,
-    in_dir: Vec3,
-    out_dir: Vec3,
+    dir_in: Vec3,
+    dir_out: Vec3,
+    outward: bool,
 }
 
 impl HitInfo {
-    pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, in_dir: Vec3) -> HitInfo {
+    pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, dir_in: Vec3) -> HitInfo {
         let mut norm = norm.unit();
-        if norm.dot(in_dir) > -EPS {
+        let dir_in = dir_in.unit();
+        let mut outward = false;
+        if norm.dot(dir_in) > -EPS {
             norm = -norm;
+            outward = true;
         }
-        let out_dir = in_dir - 2. * in_dir.proj_to(norm);
+        let dir_out = (dir_in - 2. * dir_in.proj_to(norm)).unit();
         HitInfo {
             distance,
             norm,
             hit_point,
-            in_dir,
-            out_dir,
+            dir_in,
+            dir_out,
+            outward,
         }
     }
 
     pub fn distance(&self) -> f32 {
         self.distance
     }
+
     pub fn normal(&self) -> Vec3 {
         self.norm
     }
-    pub fn in_dir(&self) -> Vec3 {
-        self.in_dir
+
+    pub fn dir_in(&self) -> Vec3 {
+        self.dir_in
     }
-    pub fn out_dir(&self) -> Vec3 {
-        self.out_dir
+
+    pub fn dir_out(&self) -> Vec3 {
+        self.dir_out
     }
 
     pub fn pos(&self) -> Vec3 {
-        self.hit_point + EPS * self.out_dir
+        self.hit_point + EPS * self.dir_out
     }
 
-    pub fn in_ray(&self) -> Ray {
+    pub fn is_to_outward(&self) -> bool {
+        self.outward
+    }
+
+    pub fn ray_in(&self) -> Ray {
         Ray {
             pos: self.hit_point,
-            dir: self.in_dir,
+            dir: self.dir_in,
         }
     }
 
     pub fn reflect(&self) -> Ray {
         Ray {
             pos: self.pos(),
-            dir: self.out_dir,
+            dir: self.dir_out,
         }
     }
 
-    // ratio = 1 / index of refraction
-    pub fn refract(&self, ratio: f32) -> Ray {
-        let cos = self.in_dir.dot(self.norm);
-        let dir = -self.norm * (1. - ratio.powi(2) * (1. - cos.powi(2)))
-            + ratio * (self.in_dir + cos * self.norm);
-        let pos = self.hit_point + EPS * dir;
-        Ray { pos, dir }
+    // ratio = inward material ior / outward material ior
+    // see https://blog.csdn.net/yinhun2012/article/details/79472364 for details
+    pub fn refract(&self, ratio: f32) -> Option<Ray> {
+        let uv = self.dir_in;
+        let n = self.norm;
+        let cos = uv.dot(n);
+
+        let discriminant = 1.0 - ratio.powi(2) * (1.0 - cos.powi(2));
+        if discriminant > 0.0 {
+            let dir = ratio * (uv - n * cos) - n * discriminant.sqrt();
+            Some(Ray {
+                pos: self.hit_point + EPS * dir,
+                dir,
+            })
+        } else {
+            None
+        }
     }
 }

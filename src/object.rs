@@ -125,7 +125,6 @@ impl Shape for Triangle {
 }
 
 #[derive(Debug)]
-
 pub struct Square {
     tri0: Triangle,
     tri1: Triangle,
@@ -181,7 +180,6 @@ impl Shape for Square {
 }
 
 #[derive(Debug)]
-
 pub struct Cube {
     pub center: Vec3,
     pub x: Vec3,
@@ -190,10 +188,10 @@ pub struct Cube {
 }
 
 impl Cube {
-    pub fn new<T: Into<Vec3>>(center: T, x: T, _y: T, len: f32) -> Self {
+    pub fn new<T: Into<Vec3>>(center: T, x: T, y: T, len: f32) -> Self {
         let center = center.into();
         let x = x.into();
-        let y = x.into();
+        let y = y.into();
         Cube { center, x, y, len }
     }
 
@@ -205,8 +203,8 @@ impl Cube {
         let len = self.len;
         let mut result = Vec::<Square>::new();
         result.push(Square::new(c + x * (len / 2.), y, z, len));
-        result.push(Square::new(c + y * (len / 2.), -x, z, len));
         result.push(Square::new(c - x * (len / 2.), -y, z, len));
+        result.push(Square::new(c + y * (len / 2.), -x, z, len));
         result.push(Square::new(c - y * (len / 2.), x, z, len));
         result.push(Square::new(c + z * (len / 2.), x, y, len));
         result.push(Square::new(c - z * (len / 2.), x, -y, len));
@@ -315,9 +313,9 @@ mod test {
         let tri = Triangle::new(vec3!(0, -1, 0), vec3!(1, 1, 0), vec3!(-1, 1, 0));
         let ray0 = Ray::new(vec3!(0, 0, 1), vec3!(0, 0, -1));
         let info = tri.hit_info(&ray0).unwrap();
-        assert_relative_eq!(info.pos(), EPS * info.out_dir() + vec3!(0, 0, 0));
-        assert_relative_eq!(info.out_dir(), vec3!(0, 0, 1));
-        assert_relative_eq!(info.normal(), vec3!(0, 0, 1));
+        assert_abs_diff_eq!(info.pos(), EPS * info.dir_out() + vec3!(0, 0, 0));
+        assert_abs_diff_eq!(info.dir_out(), vec3!(0, 0, 1));
+        assert_abs_diff_eq!(info.normal(), vec3!(0, 0, 1));
 
         let ray1 = Ray::new(vec3!(3, 0, 1), vec3!(0, 0, -1));
         assert!(tri.hit_info(&ray1).is_none());

@@ -145,7 +145,7 @@ impl PointLight {
     }
 }
 
-// sky light source from `Ray Tracing in One Weekend`
+// sky light from `Ray Tracing in One Weekend`
 #[derive(Clone, Copy, Debug)]
 pub struct SkyLight;
 
@@ -166,7 +166,7 @@ impl LightSource for SkyLight {
     }
 
     fn dir_at(&self, hit: &HitInfo) -> Vec3 {
-        -hit.out_dir()
+        -hit.dir_out()
     }
 
     fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool {
@@ -174,7 +174,7 @@ impl LightSource for SkyLight {
     }
 
     fn color(&self, hit: &HitInfo) -> Vec3 {
-        let dir = hit.out_dir();
+        let dir = hit.dir_out();
         self.color_from(dir)
     }
 

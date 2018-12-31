@@ -1,9 +1,9 @@
 use crate::{
+    light::LightInfo,
     object::World,
     ray::{HitInfo, Ray},
     util::{Color, Vec3},
 };
-use crate::light::LightInfo;
 
 use super::Material;
 
@@ -55,13 +55,13 @@ impl Material for Diffuse {
             .map(|light| {
                 let info = LightInfo::new(light.as_ref(), hit, world);
                 let ratio1 = 1.;
-                let ratio2 = hit.out_dir().dot(-info.dir());
-                let mut rate = ratio1 * ratio2.powf(self.shininess);
-                rate = min!(rate, 1.);
-                rate = max!(rate, 0.);
+                let ratio2 = hit.dir_out().dot(-info.dir());
+                let mut ratio = ratio1 * ratio2.powf(self.shininess);
+                ratio = min!(ratio, 1.);
+                ratio = max!(ratio, 0.);
 
                 // specular illumination
-                let si = rate;
+                let si = ratio;
 
                 // diffuse illumination
                 let di = max!(hit.normal().dot(-info.dir()), 0.);
@@ -149,9 +149,19 @@ impl Transparent {
 
 impl Material for Transparent {
     fn render(&self, _hit: &HitInfo, _world: &World, traced: &[Color]) -> Color {
-        (1. - self.opacity) * traced[0]
+        if traced.is_empty() {
+            (0., 0., 0.).into()
+        } else {
+            (1. - self.opacity) * traced[0]
+        }
     }
+
     fn rays_to_trace(&self, hit: &HitInfo) -> Vec<Ray> {
-        vec![hit.refract(1. / self.ior)]
+        let n = if hit.is_to_outward() {
+            self.ior
+        } else {
+            1. / self.ior
+        };
+        hit.refract(n).map(|ray| vec![ray]).unwrap_or_else(Vec::new)
     }
 }

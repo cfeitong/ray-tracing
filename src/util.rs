@@ -72,7 +72,7 @@ impl Vec3 {
     }
 
     pub fn is_parallel(self, rhs: Self) -> bool {
-        relative_eq!(self.dot(rhs).abs(), 1.)
+        abs_diff_eq!(self.dot(rhs).abs(), 1.)
     }
 }
 
@@ -304,10 +304,10 @@ impl From<Vec3> for (f32, f32, f32) {
 }
 
 impl AbsDiffEq for Vec3 {
-    type Epsilon = <f32 as AbsDiffEq>::Epsilon;
+    type Epsilon = f32;
 
     fn default_epsilon() -> Self::Epsilon {
-        f32::default_epsilon().powi(2)
+        EPS
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
@@ -399,46 +399,46 @@ mod test {
 
     #[test]
     fn test_vec3() {
-        assert_relative_eq!(vec3!(1, 2, 3).dot(vec3!(5, 40, 200)), 685.);
+        assert_abs_diff_eq!(vec3!(1, 2, 3).dot(vec3!(5, 40, 200)), 685.);
 
-        assert_relative_eq!(vec3!(1, 0, 0).cross(vec3!(0, 1, 0)), vec3!(0, 0, 1));
-        assert_relative_eq!(vec3!(0, 1, 0).cross(vec3!(0, 0, 1)), vec3!(1, 0, 0));
-        assert_relative_eq!(vec3!(0, 0, 1).cross(vec3!(1, 0, 0)), vec3!(0, 1, 0));
-        assert_relative_eq!(vec3!(0, 1, 0).cross(vec3!(1, 0, 0)), vec3!(0, 0, -1));
-        assert_relative_eq!(vec3!(0, 0, 1).cross(vec3!(0, 1, 0)), vec3!(-1, 0, 0));
-        assert_relative_eq!(vec3!(1, 0, 0).cross(vec3!(0, 0, 1)), vec3!(0, -1, 0));
+        assert_abs_diff_eq!(vec3!(1, 0, 0).cross(vec3!(0, 1, 0)), vec3!(0, 0, 1));
+        assert_abs_diff_eq!(vec3!(0, 1, 0).cross(vec3!(0, 0, 1)), vec3!(1, 0, 0));
+        assert_abs_diff_eq!(vec3!(0, 0, 1).cross(vec3!(1, 0, 0)), vec3!(0, 1, 0));
+        assert_abs_diff_eq!(vec3!(0, 1, 0).cross(vec3!(1, 0, 0)), vec3!(0, 0, -1));
+        assert_abs_diff_eq!(vec3!(0, 0, 1).cross(vec3!(0, 1, 0)), vec3!(-1, 0, 0));
+        assert_abs_diff_eq!(vec3!(1, 0, 0).cross(vec3!(0, 0, 1)), vec3!(0, -1, 0));
 
-        assert_relative_eq!(vec3!(1, 2, 3) + vec3!(10, 100, 1000), vec3!(11, 102, 1003));
-        assert_relative_eq!(vec3!(1, 2, 3) + 10., vec3!(11, 12, 13));
-        assert_relative_eq!(vec3!(10, 100, 1000) + vec3!(1, 2, 3), vec3!(11, 102, 1003));
-        assert_relative_eq!(10. + vec3!(1, 2, 3), vec3!(11, 12, 13));
-        assert_relative_eq!(vec3!(1, 2, 3) - vec3!(10, 100, 1000), vec3!(-9, -98, -997));
-        assert_relative_eq!(vec3!(1, 2, 3) - 10., vec3!(-9, -8, -7));
-        assert_relative_eq!(vec3!(10, 100, 1000) - vec3!(1, 2, 3), -vec3!(-9, -98, -997));
-        assert_relative_eq!(10. - vec3!(1, 2, 3), -vec3!(-9, -8, -7));
+        assert_abs_diff_eq!(vec3!(1, 2, 3) + vec3!(10, 100, 1000), vec3!(11, 102, 1003));
+        assert_abs_diff_eq!(vec3!(1, 2, 3) + 10., vec3!(11, 12, 13));
+        assert_abs_diff_eq!(vec3!(10, 100, 1000) + vec3!(1, 2, 3), vec3!(11, 102, 1003));
+        assert_abs_diff_eq!(10. + vec3!(1, 2, 3), vec3!(11, 12, 13));
+        assert_abs_diff_eq!(vec3!(1, 2, 3) - vec3!(10, 100, 1000), vec3!(-9, -98, -997));
+        assert_abs_diff_eq!(vec3!(1, 2, 3) - 10., vec3!(-9, -8, -7));
+        assert_abs_diff_eq!(vec3!(10, 100, 1000) - vec3!(1, 2, 3), -vec3!(-9, -98, -997));
+        assert_abs_diff_eq!(10. - vec3!(1, 2, 3), -vec3!(-9, -8, -7));
 
-        assert_relative_eq!(vec3!(5, 6, 9) * vec3!(1, 2, 3), vec3!(5, 12, 27));
-        assert_relative_eq!(vec3!(1, 1, 1) / vec3!(1, 2, 3), vec3!(1, 0.5, 1. / 3.));
+        assert_abs_diff_eq!(vec3!(5, 6, 9) * vec3!(1, 2, 3), vec3!(5, 12, 27));
+        assert_abs_diff_eq!(vec3!(1, 1, 1) / vec3!(1, 2, 3), vec3!(1, 0.5, 1. / 3.));
 
-        assert_relative_eq!(vec3!(1, 2, 3) * 5., vec3!(5, 10, 15));
-        assert_relative_eq!(5. * vec3!(1, 2, 3), vec3!(5, 10, 15));
-        assert_relative_eq!(vec3!(10, 20, 30) / 5., vec3!(2, 4, 6));
-        assert_relative_eq!(24. / vec3!(1, 2, 3), vec3!(24, 12, 8));
+        assert_abs_diff_eq!(vec3!(1, 2, 3) * 5., vec3!(5, 10, 15));
+        assert_abs_diff_eq!(5. * vec3!(1, 2, 3), vec3!(5, 10, 15));
+        assert_abs_diff_eq!(vec3!(10, 20, 30) / 5., vec3!(2, 4, 6));
+        assert_abs_diff_eq!(24. / vec3!(1, 2, 3), vec3!(24, 12, 8));
 
         let mut v = vec3!(1, 2, 3);
         v -= 10.;
-        assert_relative_eq!(v, vec3!(-9, -8, -7));
+        assert_abs_diff_eq!(v, vec3!(-9, -8, -7));
         let mut v = vec3!(1, 2, 3);
         v += 10.;
-        assert_relative_eq!(v, vec3!(11, 12, 13));
+        assert_abs_diff_eq!(v, vec3!(11, 12, 13));
         let mut v = vec3!(1, 2, 3);
         v *= 10.;
-        assert_relative_eq!(v, vec3!(10, 20, 30));
+        assert_abs_diff_eq!(v, vec3!(10, 20, 30));
         let mut v = vec3!(1, 2, 3);
         v /= 10.;
-        assert_relative_eq!(v, vec3!(0.1, 0.2, 0.3));
+        assert_abs_diff_eq!(v, vec3!(0.1, 0.2, 0.3));
 
-        assert_relative_eq!(
+        assert_abs_diff_eq!(
             vec![vec3!(1, 2, 3), vec3!(10, 20, 30), vec3!(100, 200, 300)]
                 .into_iter()
                 .sum(),
@@ -448,7 +448,7 @@ mod test {
 
     #[test]
     fn test_min_max() {
-        assert_relative_eq!(5., min!(max!(0., 10., 20., 30.), min!(6., 9., 7.), 5.));
+        assert_abs_diff_eq!(5., min!(max!(0., 10., 20., 30.), min!(6., 9., 7.), 5.));
     }
 
     #[test]
