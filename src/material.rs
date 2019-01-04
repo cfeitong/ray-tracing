@@ -4,8 +4,10 @@ use crate::{
     util::Color,
 };
 
-pub use self::basic::{Diffuse, Specular, Transparent};
-pub use self::compose::Metal;
+pub use self::{
+    basic::*,
+    compose::*
+};
 
 mod basic;
 mod compose;

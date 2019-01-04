@@ -5,17 +5,20 @@ extern crate image;
 use image::{ImageBuffer, Pixel, Rgb};
 
 use raytracer::{
-    Camera,
-    Color,
-    light::SkyLight,
-    material::{Diffuse, Metal, Transparent}, object::{Sphere, Square, World}, Vec3,
+    light,
+    material,
+    object::{
+        Cube,
+        Sphere,
+        Square,
+        World
+    },
+    Camera, Color, Vec3,
 };
-use raytracer::light::ParallelLight;
-use raytracer::object::Cube;
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
-const SAMPLE_RATE: f32 = 5.;
+const WIDTH: u32 = 400;
+const HEIGHT: u32 = 300;
+const SAMPLE_RATE: f32 = 50.;
 
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
     let r = (255.99 * max!(0., min!(1., c.x))) as u8;
@@ -26,27 +29,16 @@ fn vec3_to_rgb(c: Color) -> Rgb<u8> {
 
 fn main() {
     let mut world = World::empty();
-    let m1 = Diffuse::new();
-    let m2 = m1.with_diffuse(0.3);
-    let m3 = Transparent::new(0.0, 1.5);
-    //    world.add_obj(Sphere::new((-0.55, 0., 0.5), 0.5), Metal::new());
-    //    world.add_obj(
-    //        Sphere::new((0.55, 0., 0.5), 0.5),
-    //        m2.with_color((0.6, 0.2, 0.4)),
-    //    );
-    //    world.add_obj(Sphere::new((0., 1., 0.5), 0.5), m3);
-    world.add_obj(
-        Square::new((0., 1.4, 0.6), (1., 0., 0.), (0., 0., 1.), 1.5),
-        m1,
-    );
-    world.add_obj(
-        Square::new(vec3!(0, 0, 0), vec3!(1, 0, 0), vec3!(0, 1, 0), 5.),
-        m1.with_diffuse(0.6),
-    );
-    //        world.add_light(ParallelLight::new(vec3!(1, 0, -1)));
-    world.add_light(SkyLight);
+    let d = material::Diffuse::new(0.8);
+    let t = material::Transparent::new(0.0, 1.01);
+    let m = material::Specular::new(1.);
+    world.add_obj(Sphere::new((0., 0., -20.), 20.), d);
+    world.add_obj(Sphere::new((0., 0., 0.5), 0.5), d);
+    world.add_obj(Sphere::new((1., 0., 0.5), 0.5), t);
+    world.add_obj(Sphere::new((-1., 0., 0.5), 0.5), m);
+    world.add_light(light::SkyLight);
 
-    let camera = Camera::new(Vec3::new(-0.3, 2.5, 1.0), Vec3::new(0., 0., 1.1))
+    let camera = Camera::new(Vec3::new(-0.0, 3.0, 1.0), Vec3::new(0., 0., 1.0))
         .with_sample_rate(SAMPLE_RATE);
     let mut raw = vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize];
     for (w, h, ray) in camera.emit_rays(WIDTH, HEIGHT) {

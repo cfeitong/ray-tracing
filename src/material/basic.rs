@@ -2,21 +2,24 @@ use crate::{
     light::LightInfo,
     object::World,
     ray::{HitInfo, Ray},
-    util::{Color, Vec3},
+    util::{
+        Color,
+        Vec3,
+    }
 };
 
 use super::Material;
 
 #[derive(Clone, Copy)]
-pub struct Diffuse {
+pub struct PhongModel {
     shininess: f32,
     diffuse: f32,
     color: Color,
 }
 
-impl Diffuse {
+impl PhongModel {
     pub fn new() -> Self {
-        Diffuse {
+        PhongModel {
             shininess: 1.,
             diffuse: 0.5,
             color: (1., 1., 1.).into(),
@@ -47,7 +50,7 @@ impl Diffuse {
     }
 }
 
-impl Material for Diffuse {
+impl Material for PhongModel {
     fn render(&self, hit: &HitInfo, world: &World, _traced: &[Color]) -> Color {
         let c = world
             .lights
@@ -119,6 +122,7 @@ impl Material for Specular {
 pub struct Transparent {
     opacity: f32,
     ior: f32,
+    color: Color,
 }
 
 impl Transparent {
@@ -133,7 +137,7 @@ impl Transparent {
 
 impl Transparent {
     pub fn new(opacity: f32, ior: f32) -> Self {
-        Transparent { opacity, ior }
+        Transparent { opacity, ior, color: (1.,1.,1.).into(), }
     }
 
     pub fn with_ior(mut self, ior: f32) -> Self {
@@ -145,6 +149,11 @@ impl Transparent {
         self.opacity = opacity;
         self
     }
+
+    pub fn with_color<T: Into<Color>>(mut self, color: T) -> Self {
+        self.color = color.into();
+        self
+    }
 }
 
 impl Material for Transparent {
@@ -152,7 +161,7 @@ impl Material for Transparent {
         if traced.is_empty() {
             (0., 0., 0.).into()
         } else {
-            (1. - self.opacity) * traced[0]
+            self.color * (1. - self.opacity) * traced[0]
         }
     }
 
@@ -165,3 +174,4 @@ impl Material for Transparent {
         hit.refract(n).map(|ray| vec![ray]).unwrap_or_else(Vec::new)
     }
 }
+
