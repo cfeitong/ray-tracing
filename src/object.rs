@@ -283,6 +283,19 @@ impl World {
         if depth == 0 {
             return Color::new(0., 0., 0.);
         }
+
+        let mut see_light = false;
+        let mut color = (0., 0., 0.).into();
+        for light in &self.lights {
+            if let Some(c) = light.looked(ray, self) {
+                see_light = true;
+                color += c;
+            }
+        }
+        if see_light {
+            return color;
+        }
+
         ray.hit(self)
             .map(|hit| {
                 let m = &hit.obj.material;
@@ -294,7 +307,7 @@ impl World {
                     .collect();
                 m.render(info, self, &traced)
             })
-            .unwrap_or_else(|| self.lights.iter().map(|light| light.looked(ray)).sum())
+            .unwrap_or((0., 0., 0.).into())
     }
 }
 

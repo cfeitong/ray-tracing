@@ -56,6 +56,9 @@ impl Material for PhongModel {
             .lights
             .iter()
             .map(|light| {
+                if let Some(c) = light.looked(&hit.reflect(), world) {
+                    return c;
+                }
                 let info = LightInfo::new(light.as_ref(), hit, world);
                 let ratio1 = 1.;
                 let ratio2 = hit.dir_out().dot(-info.dir());

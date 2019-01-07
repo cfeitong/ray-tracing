@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use crate::{
-    object::World,
+    object::{Shape, World},
     ray::{HitInfo, Ray},
     util::{Color, EPS, Vec3},
 };
@@ -8,11 +10,14 @@ pub trait LightSource: Sync + Send {
     /// light intensity in [0, 1]
     fn intensity(&self, hit: &HitInfo) -> f32;
     fn dir_at(&self, hit: &HitInfo) -> Vec3;
-    fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool;
     fn color(&self, dir: &HitInfo) -> Color;
 
-    fn looked(&self, _ray: &Ray) -> Color {
-        (0., 0., 0.).into()
+    fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool {
+        hit.reflect().hit(world).is_some()
+    }
+
+    fn looked(&self, ray: &Ray, world: &World) -> Option<Color> {
+        None
     }
 
     fn illuminate(&self, hit: &HitInfo, world: &World) -> Vec3 {
@@ -67,9 +72,9 @@ pub struct ParallelLight {
 }
 
 impl ParallelLight {
-    pub fn new(dir: Vec3) -> ParallelLight {
+    pub fn new<T: Into<Vec3>>(dir: T) -> ParallelLight {
         ParallelLight {
-            dir,
+            dir: dir.into(),
             light_color: vec3!(1, 1, 1),
         }
     }
@@ -137,9 +142,9 @@ impl PointLight {
         self
     }
 
-    pub fn new(pos: Vec3) -> Self {
+    pub fn new<T: Into<Vec3>>(pos: T) -> Self {
         PointLight {
-            pos,
+            pos: pos.into(),
             light_color: vec3!(1, 1, 1),
         }
     }
@@ -169,16 +174,72 @@ impl LightSource for SkyLight {
         -hit.dir_out()
     }
 
-    fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool {
-        hit.reflect().hit(world).is_some()
-    }
-
     fn color(&self, hit: &HitInfo) -> Vec3 {
         let dir = hit.dir_out();
         self.color_from(dir)
     }
 
-    fn looked(&self, ray: &Ray) -> Color {
-        self.color_from(ray.dir())
+    fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool {
+        hit.reflect().hit(world).is_some()
+    }
+
+    fn looked(&self, ray: &Ray, world: &World) -> Option<Color> {
+        if ray.hit(world).is_none() {
+            Some(self.color_from(ray.dir))
+        } else {
+            None
+        }
+    }
+}
+
+pub struct LightShape {
+    shape: Box<Shape>,
+    color: Color,
+}
+
+impl LightShape {
+    pub fn new<T: Shape + 'static>(shape: T) -> Self {
+        LightShape {
+            shape: Box::new(shape),
+            color: (1., 1., 1.).into(),
+        }
+    }
+}
+
+impl LightSource for LightShape {
+    fn intensity(&self, hit: &HitInfo) -> f32 {
+        if self.shape.hit_info(&hit.reflect()).is_some() {
+            1.
+        } else {
+            0.
+        }
+    }
+
+    fn dir_at(&self, hit: &HitInfo) -> Vec3 {
+        -hit.reflect().dir
+    }
+
+    fn color(&self, _dir: &HitInfo) -> Vec3 {
+        self.color
+    }
+
+    fn is_in_shadow(&self, hit: &HitInfo, world: &World) -> bool {
+        let r = hit.reflect();
+        let ha = r.hit(world);
+        let hb = self.shape.hit_info(&r);
+        ha.map_or(false, |rec| {
+            hb.map_or(false, |info| rec.info.distance() < info.distance())
+        })
+    }
+
+    fn looked(&self, ray: &Ray, world: &World) -> Option<Color> {
+        let info = self.shape.hit_info(ray)?;
+        ray.hit(world).map_or(Some(self.color), |rec| {
+            if info.distance() < rec.info.distance() {
+                Some(self.color)
+            } else {
+                None
+            }
+        })
     }
 }

@@ -1,4 +1,4 @@
-#![feature(uniform_paths)]
+#![feature(uniform_paths, option_xor)]
 
 #[macro_use]
 extern crate approx;

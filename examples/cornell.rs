@@ -10,9 +10,9 @@ use raytracer::{
     material, object::{Cube, Sphere, Square, World}, Vec3,
 };
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
-const SAMPLE_RATE: f32 = 5.;
+const WIDTH: u32 = 400;
+const HEIGHT: u32 = 300;
+const SAMPLE_RATE: f32 = 50.;
 
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
     let r = (255.99 * max!(0., min!(1., c.x))) as u8;
@@ -26,21 +26,22 @@ fn main() {
     let d = material::Diffuse::new(0.8);
     let t = material::Transparent::new(0.0, 1.01);
     let m = material::Specular::new(1.);
-    world.add_obj(Sphere::new((0., 0., -20.), 20.), d);
-    world.add_obj(Sphere::new((0., 0., 0.5), 0.5), d);
-    world.add_obj(Sphere::new((1., 0., 0.5), 0.5), t);
-    world.add_obj(Sphere::new((-1., 0., 0.5), 0.5), m);
-    world.add_light(light::SkyLight);
 
-    let camera = Camera::new(Vec3::new(-0.0, 3.0, 1.0), Vec3::new(0., 0., 1.0))
-        .with_sample_rate(SAMPLE_RATE);
+    world.add_obj(Cube::new((0., 0., 0.), (1., 0., 0.), (0., 1., 0.), 2.), d);
+    world.add_light(light::LightShape::new(Square::new(
+        (0., 0., 0.99),
+        (1., 0., 0.),
+        (0., -1., 0.),
+        0.9,
+    )));
+
+    let camera =
+        Camera::new(Vec3::new(0.8, 0.0, 0.0), Vec3::new(0., 0., 0.0)).with_sample_rate(SAMPLE_RATE);
     let mut raw = vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize];
     let pixels: Vec<_> = camera
         .emit_rays(WIDTH, HEIGHT)
         .into_par_iter()
-        .map(|(w, h, ray)| {
-            (w, h, world.trace(&ray, 10))
-        })
+        .map(|(w, h, ray)| (w, h, world.trace(&ray, 10)))
         .collect();
     for (w, h, p) in pixels {
         raw[(h * WIDTH + w) as usize].0 += p;
