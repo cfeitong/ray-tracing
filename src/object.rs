@@ -1,5 +1,5 @@
 use std::cmp;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{
     light::LightSource,
@@ -8,18 +8,12 @@ use crate::{
     util::{Color, EPS, Vec3},
 };
 
-pub trait Shape {
+pub trait Shape: Sync + Send {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo>;
 }
 
-pub trait RcObjectExt {
+pub trait ArcObjectExt {
     fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
-}
-
-impl<T: Shape> Shape for AsRef<T> {
-    fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
-        self.as_ref().hit_info(ray)
-    }
 }
 
 pub struct Object {
@@ -40,7 +34,7 @@ impl Object {
     }
 }
 
-impl RcObjectExt for Rc<Object> {
+impl ArcObjectExt for Arc<Object> {
     fn hit_by(&self, ray: &Ray) -> Option<HitRecord> {
         self.shape.hit_info(ray).map(|info| HitRecord {
             obj: self.clone(),
@@ -265,8 +259,8 @@ impl Shape for Sphere {
 }
 
 pub struct World {
-    pub objects: Vec<Rc<Object>>,
-    pub lights: Vec<Rc<dyn LightSource>>,
+    pub objects: Vec<Arc<Object>>,
+    pub lights: Vec<Arc<dyn LightSource>>,
 }
 
 impl World {
@@ -278,11 +272,11 @@ impl World {
     }
 
     pub fn add_obj<T: Shape + 'static, M: Material + 'static>(&mut self, shape: T, material: M) {
-        self.objects.push(Rc::new(Object::new(shape, material)));
+        self.objects.push(Arc::new(Object::new(shape, material)));
     }
 
     pub fn add_light<T: LightSource + 'static>(&mut self, light: T) {
-        self.lights.push(Rc::new(light));
+        self.lights.push(Arc::new(light));
     }
 
     pub fn trace(&self, ray: &Ray, depth: u32) -> Color {

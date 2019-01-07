@@ -4,7 +4,7 @@ use crate::{
     util::{Color, EPS, Vec3},
 };
 
-pub trait LightSource {
+pub trait LightSource: Sync + Send {
     /// light intensity in [0, 1]
     fn intensity(&self, hit: &HitInfo) -> f32;
     fn dir_at(&self, hit: &HitInfo) -> Vec3;

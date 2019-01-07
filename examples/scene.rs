@@ -1,23 +1,17 @@
 #[macro_use]
 extern crate cft_ray_tracer as raytracer;
-extern crate image;
 
 use image::{ImageBuffer, Pixel, Rgb};
+use rayon::prelude::*;
 
 use raytracer::{
+    Camera, Color,
     light,
-    material,
-    object::{
-        Cube,
-        Sphere,
-        Square,
-        World
-    },
-    Camera, Color, Vec3,
+    material, object::{Cube, Sphere, Square, World}, Vec3,
 };
 
-const WIDTH: u32 = 400;
-const HEIGHT: u32 = 300;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
 const SAMPLE_RATE: f32 = 50.;
 
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
@@ -41,9 +35,15 @@ fn main() {
     let camera = Camera::new(Vec3::new(-0.0, 3.0, 1.0), Vec3::new(0., 0., 1.0))
         .with_sample_rate(SAMPLE_RATE);
     let mut raw = vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize];
-    for (w, h, ray) in camera.emit_rays(WIDTH, HEIGHT) {
-        let pixel = world.trace(&ray, 10);
-        raw[(h * WIDTH + w) as usize].0 += pixel;
+    let pixels: Vec<_> = camera
+        .emit_rays(WIDTH, HEIGHT)
+        .into_par_iter()
+        .map(|(w, h, ray)| {
+            (w, h, world.trace(&ray, 10))
+        })
+        .collect();
+    for (w, h, p) in pixels {
+        raw[(h * WIDTH + w) as usize].0 += p;
         raw[(h * WIDTH + w) as usize].1 += 1;
     }
     let raw: Vec<_> = raw

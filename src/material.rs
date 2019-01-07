@@ -12,7 +12,7 @@ pub use self::{
 mod basic;
 mod compose;
 
-pub trait Material {
+pub trait Material: Sync + Send {
     fn render(&self, hit: &HitInfo, world: &World, traced: &[Color]) -> Color;
     fn rays_to_trace(&self, hit: &HitInfo) -> Vec<Ray> {
         vec![hit.reflect()]

@@ -1,9 +1,9 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use rand::prelude::*;
 
 use crate::{
-    object::{Object, RcObjectExt, World},
+    object::{ArcObjectExt, Object, World},
     util::{EPS, gen_point_in_sphere, Vec3},
 };
 
@@ -117,13 +117,13 @@ impl Camera {
 }
 
 pub struct HitRecord {
-    pub(crate) obj: Rc<Object>,
+    pub(crate) obj: Arc<Object>,
     pub(crate) info: HitInfo,
 }
 
 impl HitRecord {
     pub fn new(
-        obj: Rc<Object>,
+        obj: Arc<Object>,
         distance: f32,
         norm: Vec3,
         hit_point: Vec3,
@@ -148,7 +148,7 @@ impl HitRecord {
         self.info.dir_in
     }
 
-    pub fn object(&self) -> Rc<Object> {
+    pub fn object(&self) -> Arc<Object> {
         self.obj.clone()
     }
 
