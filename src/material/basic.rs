@@ -2,10 +2,7 @@ use crate::{
     light::LightInfo,
     object::World,
     ray::{HitInfo, Ray},
-    util::{
-        Color,
-        Vec3,
-    }
+    util::{Color, Vec3},
 };
 
 use super::Material;
@@ -140,7 +137,11 @@ impl Transparent {
 
 impl Transparent {
     pub fn new(opacity: f32, ior: f32) -> Self {
-        Transparent { opacity, ior, color: (1.,1.,1.).into(), }
+        Transparent {
+            opacity,
+            ior,
+            color: (1., 1., 1.).into(),
+        }
     }
 
     pub fn with_ior(mut self, ior: f32) -> Self {
@@ -177,4 +178,3 @@ impl Material for Transparent {
         hit.refract(n).map(|ray| vec![ray]).unwrap_or_else(Vec::new)
     }
 }
-

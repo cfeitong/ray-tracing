@@ -38,9 +38,7 @@ fn main() {
     let pixels: Vec<_> = camera
         .emit_rays(WIDTH, HEIGHT)
         .into_par_iter()
-        .map(|(w, h, ray)| {
-            (w, h, world.trace(&ray, 10))
-        })
+        .map(|(w, h, ray)| (w, h, world.trace(&ray, 10)))
         .collect();
     for (w, h, p) in pixels {
         raw[(h * WIDTH + w) as usize].0 += p;

@@ -5,7 +5,7 @@ use crate::{
 };
 use crate::util::gen_point_in_sphere;
 
-use super::{PhongModel, Material, Specular};
+use super::{Material, PhongModel, Specular};
 
 pub struct Metal {
     s: Specular,
@@ -57,12 +57,10 @@ impl Diffuse {
 impl Material for Diffuse {
     fn render(&self, hit: &HitInfo, world: &World, traced: &[Color]) -> Color {
         self.c * self.s.render(hit, world, traced)
-
     }
     fn rays_to_trace(&self, hit: &HitInfo) -> Vec<Ray> {
         let mut r = hit.reflect();
         r.dir = (r.dir() + gen_point_in_sphere(1.)).unit();
         vec![r]
     }
-
 }

@@ -4,10 +4,7 @@ use crate::{
     util::Color,
 };
 
-pub use self::{
-    basic::*,
-    compose::*
-};
+pub use self::{basic::*, compose::*};
 
 mod basic;
 mod compose;
