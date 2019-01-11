@@ -4,7 +4,7 @@ use rand::prelude::*;
 
 use crate::{
     object::{ArcObjectExt, Object, World},
-    util::{EPS, gen_point_in_sphere, Vec3},
+    util::{gen_point_in_sphere, Vec3, EPS},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -251,8 +251,8 @@ impl HitInfo {
         }
     }
 
-    // ratio = inward material ior / outward material ior
     // see https://blog.csdn.net/yinhun2012/article/details/79472364 for details
+    // ratio = inward material ior / outward material ior
     pub fn refract(&self, ratio: f32) -> Option<Ray> {
         let uv = self.dir_in;
         let n = self.norm;
@@ -268,5 +268,13 @@ impl HitInfo {
         } else {
             None
         }
+    }
+
+    // Schlick's approximation
+    // see https://www.wikiwand.com/en/Schlick%27s_approximation for details
+    pub fn reflect_prob(&self, ior: f32) -> f32 {
+        let r0 = (1. - ior) / (1. + ior).powi(2);
+        let cos = self.dir_in.dot(self.norm).abs();
+        r0 + (1. - r0) * (1. - cos).powi(5)
     }
 }

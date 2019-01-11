@@ -347,7 +347,7 @@ impl UlpsEq for Vec3 {
 }
 
 impl Sum for Vec3 {
-    fn sum<I: Iterator<Item=Vec3>>(iter: I) -> Vec3 {
+    fn sum<I: Iterator<Item = Vec3>>(iter: I) -> Vec3 {
         iter.fold((0., 0., 0.).into(), |acc, cur| acc + cur)
     }
 }

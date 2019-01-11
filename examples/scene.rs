@@ -5,31 +5,41 @@ use image::{ImageBuffer, Pixel, Rgb};
 use rayon::prelude::*;
 
 use raytracer::{
-    Camera, Color,
-    light,
-    material, object::{Cube, Sphere, Square, World}, Vec3,
+    light, material,
+    object::{Cube, Sphere, Square, World},
+    Camera, Color, Vec3,
 };
 
 const WIDTH: u32 = 800;
 const HEIGHT: u32 = 600;
-const SAMPLE_RATE: f32 = 5.;
+const SAMPLE_RATE: f32 = 50.;
 
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
-    let r = (255.99 * max!(0., min!(1., c.x))) as u8;
-    let g = (255.99 * max!(0., min!(1., c.y))) as u8;
-    let b = (255.99 * max!(0., min!(1., c.z))) as u8;
+    let r = (255.99 * max!(0., min!(1., c.x)).sqrt()) as u8;
+    let g = (255.99 * max!(0., min!(1., c.y)).sqrt()) as u8;
+    let b = (255.99 * max!(0., min!(1., c.z)).sqrt()) as u8;
     *Rgb::from_slice(&[r, g, b])
 }
 
 fn main() {
     let mut world = World::empty();
-    let d = material::Diffuse::new(0.8);
-    let t = material::Transparent::new(0.0, 1.01);
-    let m = material::Specular::new(1.);
-    world.add_obj(Sphere::new((0., 0., -20.), 20.), d);
-    world.add_obj(Sphere::new((0., 0., 0.5), 0.5), d);
+    let d = material::LambertianModel::new(1.0);
+    let t = material::Dielectric::new(1.5);
+    let m = material::Metal::new(0.3, 1.0);
+    world.add_obj(
+        Sphere::new((0., 0., -20.), 20.),
+        d.with_color((0.8, 0.8, 0.0)),
+    );
+    world.add_obj(
+        Sphere::new((0., 0., 0.5), 0.5),
+        d.with_color((0.8, 0.3, 0.3)),
+    );
     world.add_obj(Sphere::new((1., 0., 0.5), 0.5), t);
-    world.add_obj(Sphere::new((-1., 0., 0.5), 0.5), m);
+    world.add_obj(Sphere::new((1., 0., 0.5), -0.49), t);
+    world.add_obj(
+        Sphere::new((-1., 0., 0.5), 0.5),
+        m.with_color((0.8, 0.6, 0.2)),
+    );
     world.add_light(light::SkyLight);
 
     let camera = Camera::new(Vec3::new(-0.0, 3.0, 1.0), Vec3::new(0., 0., 1.0))

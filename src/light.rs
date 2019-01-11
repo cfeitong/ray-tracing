@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     object::{Shape, World},
     ray::{HitInfo, Ray},
-    util::{Color, EPS, Vec3},
+    util::{Color, Vec3, EPS},
 };
 
 pub trait LightSource: Sync + Send {

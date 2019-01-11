@@ -5,7 +5,7 @@ use crate::{
     light::LightSource,
     material::Material,
     ray::{HitInfo, HitRecord, Ray},
-    util::{Color, EPS, Vec3},
+    util::{Color, Vec3, EPS},
 };
 
 pub trait Shape: Sync + Send {
@@ -23,9 +23,9 @@ pub struct Object {
 
 impl Object {
     pub fn new<S, M>(shape: S, material: M) -> Object
-        where
-            S: Shape + 'static,
-            M: Material + 'static,
+    where
+        S: Shape + 'static,
+        M: Material + 'static,
     {
         Object {
             shape: Box::new(shape),
@@ -251,7 +251,11 @@ impl Shape for Sphere {
         }
         let t = if t1 < 0. { t2 } else { t1 };
         let point = ray.pos() + ray.dir() * t;
-        let norm = (point - self.center).unit();
+        let norm = if self.radius < 0. {
+            -(point - self.center).unit()
+        } else {
+            (point - self.center).unit()
+        };
         let norm_proj = ray.dir().proj_to(norm);
         let _dir = ray.dir() - 2. * norm_proj;
         Some(HitInfo::new(t, norm, point, ray.dir()))
@@ -301,7 +305,7 @@ impl World {
                 let m = &hit.obj.material;
                 let info = &hit.info;
                 let traced: Vec<_> = m
-                    .rays_to_trace(info)
+                    .scatter(info)
                     .into_iter()
                     .map(|ray| self.trace(&ray, depth - 1))
                     .collect();

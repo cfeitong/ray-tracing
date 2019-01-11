@@ -88,7 +88,7 @@ impl Material for PhongModel {
         let kd = self.diffuse();
         kd * c * self.color
     }
-    fn rays_to_trace(&self, _hit: &HitInfo) -> Vec<Ray> {
+    fn scatter(&self, _hit: &HitInfo) -> Vec<Ray> {
         Vec::new()
     }
 }
@@ -119,6 +119,7 @@ impl Material for Specular {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Transparent {
     opacity: f32,
     ior: f32,
@@ -162,19 +163,18 @@ impl Transparent {
 
 impl Material for Transparent {
     fn render(&self, _hit: &HitInfo, _world: &World, traced: &[Color]) -> Color {
-        if traced.is_empty() {
-            (0., 0., 0.).into()
-        } else {
-            self.color * (1. - self.opacity) * traced[0]
-        }
+        self.color * (1. - self.opacity) * traced[0]
     }
 
-    fn rays_to_trace(&self, hit: &HitInfo) -> Vec<Ray> {
+    fn scatter(&self, hit: &HitInfo) -> Vec<Ray> {
         let n = if hit.is_to_outward() {
             self.ior
         } else {
             1. / self.ior
         };
-        hit.refract(n).map(|ray| vec![ray]).unwrap_or_else(Vec::new)
+        // Total reflection
+        hit.refract(n)
+            .map(|ray| vec![ray])
+            .unwrap_or(vec![hit.reflect()])
     }
 }
