@@ -8,6 +8,7 @@ use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use rand::Rng;
 
 pub(crate) const EPS: f32 = 1e-3;
+pub(crate) const PI: f32 = f32::consts::PI;
 
 // TODO: replace with tuple
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
@@ -383,7 +384,7 @@ pub type Color = Vec3;
 pub(crate) fn gen_point_in_sphere(radius: f32) -> Vec3 {
     let mut rng = rand::thread_rng();
     let r = radius;
-    let theta: f32 = rng.gen_range(0., 2. * f32::consts::PI);
+    let theta: f32 = rng.gen_range(0., 2. * PI);
     let phi: f32 = rng.gen_range(-f32::consts::FRAC_PI_2, f32::consts::FRAC_PI_2);
 
     vec3!(
@@ -391,6 +392,13 @@ pub(crate) fn gen_point_in_sphere(radius: f32) -> Vec3 {
         r * phi.sin() * theta.sin(),
         r * phi.cos()
     )
+}
+
+pub(crate) fn gen_point_in_disk(radius: f32) -> Vec3 {
+    let mut rng = rand::thread_rng();
+    let theta = rng.gen_range(0., PI);
+    let r = rng.gen_range(0., 1.);
+    radius * r * vec3!(theta.cos(), theta.sin(), 0.)
 }
 
 #[cfg(test)]

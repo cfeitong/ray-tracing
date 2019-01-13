@@ -4,7 +4,7 @@ use rand::prelude::*;
 
 use crate::{
     object::{ArcObjectExt, Object, World},
-    util::{gen_point_in_sphere, Vec3, EPS},
+    util::*,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -48,11 +48,35 @@ pub struct Camera {
     up: Vec3,
     sight: Vec3,
     sample_rate: f32,
+    focus_dist: f32,
+    aperture: f32,
+    fov: f32,
+    aspect: f32,
 }
 
 impl Camera {
     pub fn with_sample_rate(mut self, rate: f32) -> Self {
         self.sample_rate = rate;
+        self
+    }
+
+    pub fn with_focus_dist(mut self, focus_dist: f32) -> Self {
+        self.focus_dist = focus_dist;
+        self
+    }
+
+    pub fn with_aperture(mut self, aperture: f32) -> Self {
+        self.aperture = aperture;
+        self
+    }
+
+    pub fn with_fov(mut self, deg: f32) -> Self {
+        self.fov = deg / 180. * PI;
+        self
+    }
+
+    pub fn with_aspect(mut self, aspect: f32) -> Self {
+        self.aspect = aspect;
         self
     }
 
@@ -73,27 +97,38 @@ impl Camera {
         self.sight.cross(self.up).unit()
     }
 
-    /// emit needed ray through a 1 unit away square screen whose size is 2 unit.
+    /// return sight direction of this camera.
+    pub fn sight(&self) -> Vec3 {
+        self.sight
+    }
+
+    /// emit rays through a focus distance unit away square screen whose size is 2*focus_dist unit.
     pub fn emit_rays(&self, width: u32, height: u32) -> Vec<(u32, u32, Ray)> {
+        let mut rng = rand::thread_rng();
+        let vh = 2. * (self.fov / 2.).tan() * self.focus_dist;
+        let vw = vh * self.aspect;
+        let pw = vw / width as f32 * self.right();
+        let ph = vh / height as f32 * self.up();
+        let center = self.pos + self.focus_dist * self.sight;
+        let bias = 0.5 * (pw - ph);
+        let top_left = center - vw * self.right() / 2. + vh * self.up() / 2. + bias;
         (0..width)
             .flat_map(|w| (0..height).map(move |h| (w, h)))
             .flat_map(|(w, h)| {
-                let mut rays = Vec::new();
                 let mut sample = self.sample_rate;
-                let mut rng = rand::thread_rng();
+                let mut rays = Vec::new();
 
                 while rng.gen_range(0., 1.) <= sample {
                     let b = 0.5;
                     let (rw, rh) = (rng.gen_range(-b, b), rng.gen_range(-b, b));
+                    let to = top_left + (w as f32 + rw) * pw - (h as f32 + rh) * ph;
+                    //                    println!("{}, {}, {:?}", w,h,to);
 
-                    // f32 width and height
-                    let (fw, fh) = (w as f32 + rw + 0.5, h as f32 + rh + 0.5);
-                    // f32 window width and window height
-                    let (ww, wh) = (width as f32, height as f32);
-                    let (fw, fh) = (fw / ww, fh / wh);
-                    let top_left = self.pos + self.sight + self.up() - self.right();
-                    let point = top_left + 2. * self.right() * fw - 2. * self.up() * fh;
-                    let ray = Ray::new(self.pos, point - self.pos);
+                    let rd = gen_point_in_disk(self.aperture / 2.);
+                    let offset = self.right() * rd.x + self.up() * rd.y;
+                    let from = self.pos + offset;
+
+                    let ray = Ray::new(from, to - from);
                     rays.push((w, h, ray));
 
                     sample -= 1.;
@@ -104,14 +139,18 @@ impl Camera {
     }
 
     /// create a camera which is at `pos` and look at `point`.
-    pub fn new(from: Vec3, to: Vec3) -> Camera {
+    pub fn new<T: Into<Vec3>>(from: T, to: T) -> Camera {
         let mut camera = Camera {
-            pos: from,
+            pos: from.into(),
             up: Vec3::new(0., 0., 1.),
             sight: Vec3::new(0., 0., 1.),
             sample_rate: 1.,
+            focus_dist: 1.,
+            aperture: 0.,
+            fov: 45.,
+            aspect: 1.,
         };
-        camera.look(to);
+        camera.look(to.into());
         camera
     }
 }

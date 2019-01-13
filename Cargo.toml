@@ -5,9 +5,10 @@ authors = ["cfeitong <cfeitong@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-approx = "0.3.0"
-rand = "0.6"
+approx = "^0.3.0"
+rand = "^0.6"
 
 [dev-dependencies]
-image = "0.20"
-rayon = "1"
+image = "^0.20"
+rayon = "^1"
+indicatif = "^0.11"
