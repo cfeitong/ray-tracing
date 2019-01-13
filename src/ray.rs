@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rand::prelude::*;
+use rayon::prelude::*;
 
 use crate::{
     object::{ArcObjectExt, Object, World},
@@ -47,35 +48,35 @@ pub struct Camera {
     pub pos: Vec3,
     up: Vec3,
     sight: Vec3,
-    sample_rate: f32,
-    focus_dist: f32,
-    aperture: f32,
-    fov: f32,
-    aspect: f32,
+    sample_rate: u64,
+    focus_dist: f64,
+    aperture: f64,
+    fov: f64,
+    aspect: f64,
 }
 
 impl Camera {
-    pub fn with_sample_rate(mut self, rate: f32) -> Self {
+    pub fn with_sample_rate(mut self, rate: u64) -> Self {
         self.sample_rate = rate;
         self
     }
 
-    pub fn with_focus_dist(mut self, focus_dist: f32) -> Self {
+    pub fn with_focus_dist(mut self, focus_dist: f64) -> Self {
         self.focus_dist = focus_dist;
         self
     }
 
-    pub fn with_aperture(mut self, aperture: f32) -> Self {
+    pub fn with_aperture(mut self, aperture: f64) -> Self {
         self.aperture = aperture;
         self
     }
 
-    pub fn with_fov(mut self, deg: f32) -> Self {
+    pub fn with_fov(mut self, deg: f64) -> Self {
         self.fov = deg / 180. * PI;
         self
     }
 
-    pub fn with_aspect(mut self, aspect: f32) -> Self {
+    pub fn with_aspect(mut self, aspect: f64) -> Self {
         self.aspect = aspect;
         self
     }
@@ -103,39 +104,35 @@ impl Camera {
     }
 
     /// emit rays through a focus distance unit away square screen whose size is 2*focus_dist unit.
-    pub fn emit_rays(&self, width: u32, height: u32) -> Vec<(u32, u32, Ray)> {
-        let mut rng = rand::thread_rng();
+    pub fn emit_rays(
+        &self,
+        width: u64,
+        height: u64,
+    ) -> impl ParallelIterator<Item = (u64, u64, Ray)> + '_ {
         let vh = 2. * (self.fov / 2.).tan() * self.focus_dist;
         let vw = vh * self.aspect;
-        let pw = vw / width as f32 * self.right();
-        let ph = vh / height as f32 * self.up();
+        let pw = vw / width as f64 * self.right();
+        let ph = vh / height as f64 * self.up();
         let center = self.pos + self.focus_dist * self.sight;
         let bias = 0.5 * (pw - ph);
         let top_left = center - vw * self.right() / 2. + vh * self.up() / 2. + bias;
         (0..width)
-            .flat_map(|w| (0..height).map(move |h| (w, h)))
-            .flat_map(|(w, h)| {
-                let mut sample = self.sample_rate;
-                let mut rays = Vec::new();
-
-                while rng.gen_range(0., 1.) <= sample {
+            .into_par_iter()
+            .flat_map(move |w| (0..height).into_par_iter().map(move |h| (w, h)))
+            .flat_map(move |(w, h)| {
+                (0..self.sample_rate).into_par_iter().map(move |_| {
+                    let mut rng = rand::thread_rng();
                     let b = 0.5;
                     let (rw, rh) = (rng.gen_range(-b, b), rng.gen_range(-b, b));
-                    let to = top_left + (w as f32 + rw) * pw - (h as f32 + rh) * ph;
-                    //                    println!("{}, {}, {:?}", w,h,to);
+                    let to = top_left + (w as f64 + rw) * pw - (h as f64 + rh) * ph;
 
                     let rd = gen_point_in_disk(self.aperture / 2.);
                     let offset = self.right() * rd.x + self.up() * rd.y;
                     let from = self.pos + offset;
 
-                    let ray = Ray::new(from, to - from);
-                    rays.push((w, h, ray));
-
-                    sample -= 1.;
-                }
-                rays
+                    (w, h, Ray::new(from, to - from))
+                })
             })
-            .collect()
     }
 
     /// create a camera which is at `pos` and look at `point`.
@@ -144,7 +141,7 @@ impl Camera {
             pos: from.into(),
             up: Vec3::new(0., 0., 1.),
             sight: Vec3::new(0., 0., 1.),
-            sample_rate: 1.,
+            sample_rate: 1,
             focus_dist: 1.,
             aperture: 0.,
             fov: 45.,
@@ -163,7 +160,7 @@ pub struct HitRecord {
 impl HitRecord {
     pub fn new(
         obj: Arc<Object>,
-        distance: f32,
+        distance: f64,
         norm: Vec3,
         hit_point: Vec3,
         dir_in: Vec3,
@@ -175,7 +172,7 @@ impl HitRecord {
         }
     }
 
-    pub fn angle(&self) -> f32 {
+    pub fn angle(&self) -> f64 {
         self.dir_out().dot(self.info.norm).acos()
     }
 
@@ -213,7 +210,7 @@ impl HitRecord {
         self.info.hit_point
     }
 
-    pub fn distance(&self) -> f32 {
+    pub fn distance(&self) -> f64 {
         self.info.distance
     }
 
@@ -224,7 +221,7 @@ impl HitRecord {
 
 #[derive(Clone, Copy, Debug)]
 pub struct HitInfo {
-    distance: f32,
+    distance: f64,
     norm: Vec3,
     hit_point: Vec3,
     dir_in: Vec3,
@@ -233,14 +230,15 @@ pub struct HitInfo {
 }
 
 impl HitInfo {
-    pub fn new(distance: f32, norm: Vec3, hit_point: Vec3, dir_in: Vec3) -> HitInfo {
+    pub fn new(distance: f64, norm: Vec3, hit_point: Vec3, dir_in: Vec3) -> HitInfo {
         let mut norm = norm.unit();
         let dir_in = dir_in.unit();
-        let mut outward = false;
-        if norm.dot(dir_in) > -EPS {
+        let outward = if norm.dot(dir_in) > -EPS {
             norm = -norm;
-            outward = true;
-        }
+            true
+        } else {
+            false
+        };
         let dir_out = (dir_in - 2. * dir_in.proj_to(norm)).unit();
         HitInfo {
             distance,
@@ -252,7 +250,7 @@ impl HitInfo {
         }
     }
 
-    pub fn distance(&self) -> f32 {
+    pub fn distance(&self) -> f64 {
         self.distance
     }
 
@@ -292,7 +290,7 @@ impl HitInfo {
 
     // see https://blog.csdn.net/yinhun2012/article/details/79472364 for details
     // ratio = inward material ior / outward material ior
-    pub fn refract(&self, ratio: f32) -> Option<Ray> {
+    pub fn refract(&self, ratio: f64) -> Option<Ray> {
         let uv = self.dir_in;
         let n = self.norm;
         let cos = uv.dot(n);
@@ -311,7 +309,7 @@ impl HitInfo {
 
     // Schlick's approximation
     // see https://www.wikiwand.com/en/Schlick%27s_approximation for details
-    pub fn reflect_prob(&self, ior: f32) -> f32 {
+    pub fn reflect_prob(&self, ior: f64) -> f64 {
         let r0 = (1. - ior) / (1. + ior).powi(2);
         let cos = self.dir_in.dot(self.norm).abs();
         r0 + (1. - r0) * (1. - cos).powi(5)

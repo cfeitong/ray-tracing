@@ -125,7 +125,7 @@ pub struct Square {
 }
 
 impl Square {
-    pub fn new<T: Into<Vec3>>(center: T, x: T, y: T, len: f32) -> Square {
+    pub fn new<T: Into<Vec3>>(center: T, x: T, y: T, len: f64) -> Square {
         let center = center.into();
         let x = x.into();
         let y = y.into();
@@ -178,11 +178,11 @@ pub struct Cube {
     pub center: Vec3,
     pub x: Vec3,
     pub y: Vec3,
-    pub len: f32,
+    pub len: f64,
 }
 
 impl Cube {
-    pub fn new<T: Into<Vec3>>(center: T, x: T, y: T, len: f32) -> Self {
+    pub fn new<T: Into<Vec3>>(center: T, x: T, y: T, len: f64) -> Self {
         let center = center.into();
         let x = x.into();
         let y = y.into();
@@ -223,11 +223,11 @@ impl Shape for Cube {
 #[derive(Clone, Copy, Debug)]
 pub struct Sphere {
     center: Vec3,
-    radius: f32,
+    radius: f64,
 }
 
 impl Sphere {
-    pub fn new<T: Into<Vec3>>(o: T, r: f32) -> Self {
+    pub fn new<T: Into<Vec3>>(o: T, r: f64) -> Self {
         Sphere {
             center: o.into(),
             radius: r,
@@ -283,7 +283,7 @@ impl World {
         self.lights.push(Arc::new(light));
     }
 
-    pub fn trace(&self, ray: &Ray, depth: u32) -> Color {
+    pub fn trace(&self, ray: &Ray, depth: u64) -> Color {
         if depth == 0 {
             return Color::new(0., 0., 0.);
         }

@@ -9,8 +9,8 @@ use super::Material;
 
 #[derive(Clone, Copy)]
 pub struct PhongModel {
-    shininess: f32,
-    diffuse: f32,
+    shininess: f64,
+    diffuse: f64,
     color: Color,
 }
 
@@ -23,12 +23,12 @@ impl PhongModel {
         }
     }
 
-    pub fn with_shininess(mut self, shininess: f32) -> Self {
+    pub fn with_shininess(mut self, shininess: f64) -> Self {
         self.shininess = shininess;
         self
     }
 
-    pub fn with_diffuse(mut self, kd: f32) -> Self {
+    pub fn with_diffuse(mut self, kd: f64) -> Self {
         self.diffuse = kd;
         self
     }
@@ -38,12 +38,18 @@ impl PhongModel {
         self
     }
 
-    pub fn shininess(&self) -> f32 {
+    pub fn shininess(&self) -> f64 {
         self.shininess
     }
 
-    pub fn diffuse(&self) -> f32 {
+    pub fn diffuse(&self) -> f64 {
         self.diffuse
+    }
+}
+
+impl Default for PhongModel {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -76,13 +82,11 @@ impl Material for PhongModel {
                 let li = info.intensity() * info.color();
 
                 // total intensity = specular + diffuse + ambient
-                let ti = if info.is_in_shadow() {
+                if info.is_in_shadow() {
                     ai * li
                 } else {
                     (si * 0.5 + di * 0.5 + ai) * li
-                };
-
-                ti
+                }
             })
             .sum::<Vec3>();
         let kd = self.diffuse();
@@ -95,20 +99,20 @@ impl Material for PhongModel {
 
 #[derive(Clone, Copy)]
 pub struct Specular {
-    albedo: f32,
+    albedo: f64,
 }
 
 impl Specular {
-    pub fn new(albedo: f32) -> Specular {
+    pub fn new(albedo: f64) -> Specular {
         Specular { albedo }
     }
 
-    pub fn with_albedo(mut self, albedo: f32) -> Self {
+    pub fn with_albedo(mut self, albedo: f64) -> Self {
         self.albedo = albedo;
         self
     }
 
-    pub fn albedo(&self) -> f32 {
+    pub fn albedo(self) -> f64 {
         self.albedo
     }
 }
@@ -121,23 +125,23 @@ impl Material for Specular {
 
 #[derive(Clone, Copy)]
 pub struct Transparent {
-    opacity: f32,
-    ior: f32,
+    opacity: f64,
+    ior: f64,
     color: Color,
 }
 
 impl Transparent {
-    pub fn ior(&self) -> f32 {
+    pub fn ior(&self) -> f64 {
         self.ior
     }
 
-    pub fn opacity(&self) -> f32 {
+    pub fn opacity(&self) -> f64 {
         self.opacity
     }
 }
 
 impl Transparent {
-    pub fn new(opacity: f32, ior: f32) -> Self {
+    pub fn new(opacity: f64, ior: f64) -> Self {
         Transparent {
             opacity,
             ior,
@@ -145,12 +149,12 @@ impl Transparent {
         }
     }
 
-    pub fn with_ior(mut self, ior: f32) -> Self {
+    pub fn with_ior(mut self, ior: f64) -> Self {
         self.ior = ior;
         self
     }
 
-    pub fn with_opacity(mut self, opacity: f32) -> Self {
+    pub fn with_opacity(mut self, opacity: f64) -> Self {
         self.opacity = opacity;
         self
     }

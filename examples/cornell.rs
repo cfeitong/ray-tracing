@@ -11,9 +11,9 @@ use raytracer::{
 };
 use std::sync::Mutex;
 
-const WIDTH: u32 = 400;
-const HEIGHT: u32 = 300;
-const SAMPLE_RATE: f32 = 5.;
+const WIDTH: u64 = 400;
+const HEIGHT: u64 = 300;
+const SAMPLE_RATE: u64 = 5;
 
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
     let r = (255.99 * max!(0., min!(1., c.x))) as u8;
@@ -39,7 +39,6 @@ fn main() {
     let raw = Mutex::new(vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize]);
     camera
         .emit_rays(WIDTH, HEIGHT)
-        .into_par_iter()
         .map(|(w, h, ray)| (w, h, world.trace(&ray, 10)))
         .for_each(|(w, h, p)| {
             let mut raw = raw.lock().expect("fail to lock raw array");
@@ -50,8 +49,10 @@ fn main() {
         .into_inner()
         .unwrap()
         .into_iter()
-        .map(|(pixel, count)| vec3_to_rgb(pixel / (count as f32)))
+        .map(|(pixel, count)| vec3_to_rgb(pixel / (count as f64)))
         .collect();
-    let img = ImageBuffer::from_fn(WIDTH, HEIGHT, |w, h| raw[(h * WIDTH + w) as usize]);
+    let img = ImageBuffer::from_fn(WIDTH as u32, HEIGHT as u32, |w, h| {
+        raw[(h * WIDTH as u32 + w) as usize]
+    });
     img.save("test.jpg").unwrap();
 }

@@ -9,12 +9,12 @@ use super::*;
 #[derive(Clone, Copy)]
 pub struct Metal {
     s: Specular,
-    fuzz: f32,
+    fuzz: f64,
     color: Color,
 }
 
 impl Metal {
-    pub fn new(fuzz: f32, albedo: f32) -> Self {
+    pub fn new(fuzz: f64, albedo: f64) -> Self {
         let fuzz = if fuzz > 1. { 1. } else { fuzz };
         Metal {
             s: Specular::new(albedo),
@@ -23,12 +23,12 @@ impl Metal {
         }
     }
 
-    pub fn with_fuzz(mut self, fuzz: f32) -> Self {
+    pub fn with_fuzz(mut self, fuzz: f64) -> Self {
         self.fuzz = fuzz;
         self
     }
 
-    pub fn with_albedo(mut self, albedo: f32) -> Self {
+    pub fn with_albedo(mut self, albedo: f64) -> Self {
         self.s = self.s.with_albedo(albedo);
         self
     }
@@ -58,14 +58,14 @@ pub struct Dielectric {
 }
 
 impl Dielectric {
-    pub fn new(ior: f32) -> Self {
+    pub fn new(ior: f64) -> Self {
         Dielectric {
             s: Specular::new(1.),
             r: Transparent::new(0., ior),
         }
     }
 
-    pub fn with_ior(mut self, ior: f32) -> Self {
+    pub fn with_ior(mut self, ior: f64) -> Self {
         self.r = self.r.with_ior(ior);
         self
     }
@@ -94,7 +94,7 @@ pub struct LambertianModel {
 }
 
 impl LambertianModel {
-    pub fn new(albedo: f32) -> Self {
+    pub fn new(albedo: f64) -> Self {
         LambertianModel {
             s: Specular::new(albedo),
             c: (1., 1., 1.).into(),

@@ -12,9 +12,9 @@ use raytracer::{
     Camera, Color,
 };
 
-const WIDTH: u32 = 1200;
-const HEIGHT: u32 = 800;
-const SAMPLE_RATE: f32 = 100.;
+const WIDTH: u64 = 1200;
+const HEIGHT: u64 = 800;
+const SAMPLE_RATE: u64 = 100;
 
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
     let r = (255.99 * max!(0., min!(1., c.x)).sqrt()) as u8;
@@ -33,10 +33,10 @@ fn main() {
         d.with_color((0.5, 0.5, 0.5)),
     );
     let mut rng = rand::thread_rng();
-    let mut rd = || rng.gen::<f32>();
+    let mut rd = || rng.gen::<f64>();
     for a in -11..11 {
         for b in -11..11 {
-            let center = vec3!(a as f32 + 0.9 * rd(), b as f32 + 0.9 * rd(), 0.2);
+            let center = vec3!(a as f64 + 0.9 * rd(), b as f64 + 0.9 * rd(), 0.2);
             let choose_material = rd();
             if choose_material < 0.8 {
                 world.add_obj(
@@ -69,21 +69,21 @@ fn main() {
         .with_focus_dist(10.)
         .with_aperture(0.1)
         .with_fov(20.)
-        .with_aspect(WIDTH as f32 / HEIGHT as f32)
+        .with_aspect(WIDTH as f64 / HEIGHT as f64)
         .with_sample_rate(SAMPLE_RATE);
 
     let mut raw = vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize];
-    let rays = camera.emit_rays(WIDTH, HEIGHT);
-    let bar = ProgressBar::new(rays.len() as u64);
-    bar.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-        .progress_chars("#>-"));
-    let pixels: Vec<_> = rays
-        .into_par_iter()
+    let bar = ProgressBar::new(SAMPLE_RATE * WIDTH * HEIGHT);
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:80.cyan/blue} {pos:>7}/{len:7} {eta_precise}")
+            .progress_chars("#>-"),
+    );
+    let pixels: Vec<_> = camera
+        .emit_rays(WIDTH, HEIGHT)
         .map(|(w, h, ray)| {
             let result = (w, h, world.trace(&ray, 10));
-            let bar = bar.clone();
-            bar.tick();
+            bar.inc(1);
             result
         })
         .collect();
@@ -95,8 +95,10 @@ fn main() {
 
     let raw: Vec<_> = raw
         .into_par_iter()
-        .map(|(pixel, count)| vec3_to_rgb(pixel / (count as f32)))
+        .map(|(pixel, count)| vec3_to_rgb(pixel / (count as f64)))
         .collect();
-    let img = ImageBuffer::from_fn(WIDTH, HEIGHT, |w, h| raw[(h * WIDTH + w) as usize]);
-    img.save("examples/scene.jpg").unwrap();
+    let img = ImageBuffer::from_fn(WIDTH as u32, HEIGHT as u32, |w, h| {
+        raw[(h * WIDTH as u32 + w) as usize]
+    });
+    img.save("test.jpg").unwrap();
 }

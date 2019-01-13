@@ -1,5 +1,5 @@
 use std::{
-    f32, fmt,
+    f64, fmt,
     iter::Sum,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
@@ -7,15 +7,15 @@ use std::{
 use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 use rand::Rng;
 
-pub(crate) const EPS: f32 = 1e-3;
-pub(crate) const PI: f32 = f32::consts::PI;
+pub(crate) const EPS: f64 = 1e-3;
+pub(crate) const PI: f64 = f64::consts::PI;
 
 // TODO: replace with tuple
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub struct Vec3 {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 impl fmt::Display for Vec3 {
@@ -25,11 +25,11 @@ impl fmt::Display for Vec3 {
 }
 
 impl Vec3 {
-    pub fn dot(self, rhs: Self) -> f32 {
+    pub fn dot(self, rhs: Self) -> f64 {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
 
-    pub fn new<T: Into<f32>>(x: T, y: T, z: T) -> Self {
+    pub fn new<T: Into<f64>>(x: T, y: T, z: T) -> Self {
         Vec3 {
             x: x.into(),
             y: y.into(),
@@ -49,11 +49,11 @@ impl Vec3 {
         self / self.len()
     }
 
-    pub fn len(self) -> f32 {
+    pub fn len(self) -> f64 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
     }
 
-    pub fn len2(self) -> f32 {
+    pub fn len2(self) -> f64 {
         self.x.powi(2) + self.y.powi(2) + self.z.powi(2)
     }
 
@@ -62,7 +62,7 @@ impl Vec3 {
         n * self.dot(n)
     }
 
-    pub fn distance(self, rhs: Self) -> f32 {
+    pub fn distance(self, rhs: Self) -> f64 {
         let v = self - rhs;
         let Self { x, y, z } = v;
         (x * x + y * y + z * z).sqrt()
@@ -80,7 +80,7 @@ impl Vec3 {
 #[macro_export]
 macro_rules! vec3 {
     ($x:expr, $y:expr, $z:expr) => {
-        $crate::util::Vec3::new($x as f32, $y as f32, $z as f32)
+        $crate::util::Vec3::new(f64::from($x), f64::from($y), f64::from($z))
     };
 }
 
@@ -108,10 +108,10 @@ impl Add<Self> for Vec3 {
     }
 }
 
-impl Add<f32> for Vec3 {
+impl Add<f64> for Vec3 {
     type Output = Vec3;
 
-    fn add(self, rhs: f32) -> Vec3 {
+    fn add(self, rhs: f64) -> Vec3 {
         Vec3 {
             x: self.x + rhs,
             y: self.y + rhs,
@@ -120,7 +120,7 @@ impl Add<f32> for Vec3 {
     }
 }
 
-impl Add<Vec3> for f32 {
+impl Add<Vec3> for f64 {
     type Output = Vec3;
 
     fn add(self, rhs: Vec3) -> Vec3 {
@@ -140,8 +140,8 @@ impl AddAssign<Self> for Vec3 {
     }
 }
 
-impl AddAssign<f32> for Vec3 {
-    fn add_assign(&mut self, rhs: f32) {
+impl AddAssign<f64> for Vec3 {
+    fn add_assign(&mut self, rhs: f64) {
         self.x += rhs;
         self.y += rhs;
         self.z += rhs;
@@ -160,10 +160,10 @@ impl Sub<Self> for Vec3 {
     }
 }
 
-impl Sub<f32> for Vec3 {
+impl Sub<f64> for Vec3 {
     type Output = Vec3;
 
-    fn sub(self, rhs: f32) -> Vec3 {
+    fn sub(self, rhs: f64) -> Vec3 {
         Vec3 {
             x: self.x - rhs,
             y: self.y - rhs,
@@ -172,7 +172,7 @@ impl Sub<f32> for Vec3 {
     }
 }
 
-impl Sub<Vec3> for f32 {
+impl Sub<Vec3> for f64 {
     type Output = Vec3;
 
     fn sub(self, rhs: Vec3) -> Vec3 {
@@ -192,15 +192,15 @@ impl SubAssign<Self> for Vec3 {
     }
 }
 
-impl SubAssign<f32> for Vec3 {
-    fn sub_assign(&mut self, rhs: f32) {
+impl SubAssign<f64> for Vec3 {
+    fn sub_assign(&mut self, rhs: f64) {
         self.x -= rhs;
         self.y -= rhs;
         self.z -= rhs;
     }
 }
 
-impl<T: Into<f32>> Mul<T> for Vec3 {
+impl<T: Into<f64>> Mul<T> for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: T) -> Self {
@@ -213,7 +213,7 @@ impl<T: Into<f32>> Mul<T> for Vec3 {
     }
 }
 
-impl Mul<Vec3> for f32 {
+impl Mul<Vec3> for f64 {
     type Output = Vec3;
 
     fn mul(self, rhs: Vec3) -> Vec3 {
@@ -237,7 +237,7 @@ impl Mul<Vec3> for Vec3 {
     }
 }
 
-impl<T: Into<f32>> MulAssign<T> for Vec3 {
+impl<T: Into<f64>> MulAssign<T> for Vec3 {
     fn mul_assign(&mut self, rhs: T) {
         let v = rhs.into();
         self.x *= v;
@@ -246,7 +246,7 @@ impl<T: Into<f32>> MulAssign<T> for Vec3 {
     }
 }
 
-impl<T: Into<f32>> Div<T> for Vec3 {
+impl<T: Into<f64>> Div<T> for Vec3 {
     type Output = Self;
 
     fn div(self, rhs: T) -> Self {
@@ -259,7 +259,7 @@ impl<T: Into<f32>> Div<T> for Vec3 {
     }
 }
 
-impl Div<Vec3> for f32 {
+impl Div<Vec3> for f64 {
     type Output = Vec3;
 
     fn div(self, rhs: Vec3) -> Vec3 {
@@ -283,7 +283,7 @@ impl Div<Vec3> for Vec3 {
     }
 }
 
-impl<T: Into<f32>> DivAssign<T> for Vec3 {
+impl<T: Into<f64>> DivAssign<T> for Vec3 {
     fn div_assign(&mut self, rhs: T) {
         let v = rhs.into();
         self.x /= v;
@@ -292,35 +292,35 @@ impl<T: Into<f32>> DivAssign<T> for Vec3 {
     }
 }
 
-impl<T: Into<f32>> From<(T, T, T)> for Vec3 {
+impl<T: Into<f64>> From<(T, T, T)> for Vec3 {
     fn from(v: (T, T, T)) -> Self {
         vec3!(v.0.into(), v.1.into(), v.2.into())
     }
 }
 
-impl From<Vec3> for (f32, f32, f32) {
+impl From<Vec3> for (f64, f64, f64) {
     fn from(v: Vec3) -> Self {
         (v.x, v.y, v.z)
     }
 }
 
 impl AbsDiffEq for Vec3 {
-    type Epsilon = f32;
+    type Epsilon = f64;
 
     fn default_epsilon() -> Self::Epsilon {
         EPS
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        f32::abs_diff_eq(&self.x, &other.x, epsilon)
-            && f32::abs_diff_eq(&self.y, &other.y, epsilon)
-            && f32::abs_diff_eq(&self.z, &other.z, epsilon)
+        f64::abs_diff_eq(&self.x, &other.x, epsilon)
+            && f64::abs_diff_eq(&self.y, &other.y, epsilon)
+            && f64::abs_diff_eq(&self.z, &other.z, epsilon)
     }
 }
 
 impl RelativeEq for Vec3 {
     fn default_max_relative() -> Self::Epsilon {
-        f32::default_max_relative()
+        f64::default_max_relative()
     }
 
     fn relative_eq(
@@ -329,21 +329,21 @@ impl RelativeEq for Vec3 {
         epsilon: Self::Epsilon,
         max_relative: Self::Epsilon,
     ) -> bool {
-        f32::relative_eq(&self.x, &other.x, epsilon, max_relative)
-            && f32::relative_eq(&self.y, &other.y, epsilon, max_relative)
-            && f32::relative_eq(&self.z, &other.z, epsilon, max_relative)
+        f64::relative_eq(&self.x, &other.x, epsilon, max_relative)
+            && f64::relative_eq(&self.y, &other.y, epsilon, max_relative)
+            && f64::relative_eq(&self.z, &other.z, epsilon, max_relative)
     }
 }
 
 impl UlpsEq for Vec3 {
     fn default_max_ulps() -> u32 {
-        f32::default_max_ulps()
+        f64::default_max_ulps()
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        f32::ulps_eq(&self.x, &other.x, epsilon, max_ulps)
-            && f32::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
-            && f32::ulps_eq(&self.z, &other.z, epsilon, max_ulps)
+        f64::ulps_eq(&self.x, &other.x, epsilon, max_ulps)
+            && f64::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
+            && f64::ulps_eq(&self.z, &other.z, epsilon, max_ulps)
     }
 }
 
@@ -381,11 +381,11 @@ macro_rules! min {
 
 pub type Color = Vec3;
 
-pub(crate) fn gen_point_in_sphere(radius: f32) -> Vec3 {
+pub(crate) fn gen_point_in_sphere(radius: f64) -> Vec3 {
     let mut rng = rand::thread_rng();
     let r = radius;
-    let theta: f32 = rng.gen_range(0., 2. * PI);
-    let phi: f32 = rng.gen_range(-f32::consts::FRAC_PI_2, f32::consts::FRAC_PI_2);
+    let theta: f64 = rng.gen_range(0., 2. * PI);
+    let phi: f64 = rng.gen_range(-f64::consts::FRAC_PI_2, f64::consts::FRAC_PI_2);
 
     vec3!(
         r * phi.sin() * theta.cos(),
@@ -394,7 +394,7 @@ pub(crate) fn gen_point_in_sphere(radius: f32) -> Vec3 {
     )
 }
 
-pub(crate) fn gen_point_in_disk(radius: f32) -> Vec3 {
+pub(crate) fn gen_point_in_disk(radius: f64) -> Vec3 {
     let mut rng = rand::thread_rng();
     let theta = rng.gen_range(0., PI);
     let r = rng.gen_range(0., 1.);

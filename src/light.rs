@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     object::{Shape, World},
     ray::{HitInfo, Ray},
@@ -8,7 +6,7 @@ use crate::{
 
 pub trait LightSource: Sync + Send {
     /// light intensity in [0, 1]
-    fn intensity(&self, hit: &HitInfo) -> f32;
+    fn intensity(&self, hit: &HitInfo) -> f64;
     fn dir_at(&self, hit: &HitInfo) -> Vec3;
     fn color(&self, dir: &HitInfo) -> Color;
 
@@ -16,7 +14,7 @@ pub trait LightSource: Sync + Send {
         hit.reflect().hit(world).is_some()
     }
 
-    fn looked(&self, ray: &Ray, world: &World) -> Option<Color> {
+    fn looked(&self, _ray: &Ray, _world: &World) -> Option<Color> {
         None
     }
 
@@ -44,7 +42,7 @@ impl LightInfo<'_> {
         LightInfo { light, hit, world }
     }
 
-    pub fn intensity(&self) -> f32 {
+    pub fn intensity(&self) -> f64 {
         self.light.intensity(self.hit)
     }
 
@@ -86,7 +84,7 @@ impl ParallelLight {
 }
 
 impl LightSource for ParallelLight {
-    fn intensity(&self, _hit: &HitInfo) -> f32 {
+    fn intensity(&self, _hit: &HitInfo) -> f64 {
         1.
     }
     fn dir_at(&self, _hit: &HitInfo) -> Vec3 {
@@ -111,7 +109,7 @@ pub struct PointLight {
 
 // TODO: add intensity decay with distance
 impl LightSource for PointLight {
-    fn intensity(&self, hit: &HitInfo) -> f32 {
+    fn intensity(&self, hit: &HitInfo) -> f64 {
         1. / (self.pos - hit.pos()).len2()
     }
 
@@ -155,7 +153,7 @@ impl PointLight {
 pub struct SkyLight;
 
 impl SkyLight {
-    fn color_from(&self, dir: Vec3) -> Color {
+    fn color_from(self, dir: Vec3) -> Color {
         let t = 0.5 * (dir.z + 1.0);
         let v = 1.0 - t;
 
@@ -166,7 +164,7 @@ impl SkyLight {
 }
 
 impl LightSource for SkyLight {
-    fn intensity(&self, _hit: &HitInfo) -> f32 {
+    fn intensity(&self, _hit: &HitInfo) -> f64 {
         1.
     }
 
@@ -207,7 +205,7 @@ impl LightShape {
 }
 
 impl LightSource for LightShape {
-    fn intensity(&self, hit: &HitInfo) -> f32 {
+    fn intensity(&self, hit: &HitInfo) -> f64 {
         if self.shape.hit_info(&hit.reflect()).is_some() {
             1.
         } else {
