@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use rand::prelude::*;
-use rayon::prelude::*;
 
 use crate::{
     object::{ArcObjectExt, Object, World},
@@ -108,7 +107,7 @@ impl Camera {
         &self,
         width: u64,
         height: u64,
-    ) -> impl ParallelIterator<Item = (u64, u64, Ray)> + '_ {
+    ) -> impl Iterator<Item = (u64, u64, Ray)> + '_ {
         let vh = 2. * (self.fov / 2.).tan() * self.focus_dist;
         let vw = vh * self.aspect;
         let pw = vw / width as f64 * self.right();
@@ -117,10 +116,10 @@ impl Camera {
         let bias = 0.5 * (pw - ph);
         let top_left = center - vw * self.right() / 2. + vh * self.up() / 2. + bias;
         (0..width)
-            .into_par_iter()
-            .flat_map(move |w| (0..height).into_par_iter().map(move |h| (w, h)))
+            .into_iter()
+            .flat_map(move |w| (0..height).into_iter().map(move |h| (w, h)))
             .flat_map(move |(w, h)| {
-                (0..self.sample_rate).into_par_iter().map(move |_| {
+                (0..self.sample_rate).into_iter().map(move |_| {
                     let mut rng = rand::thread_rng();
                     let b = 0.5;
                     let (rw, rh) = (rng.gen_range(-b, b), rng.gen_range(-b, b));

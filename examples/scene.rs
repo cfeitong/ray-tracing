@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate cft_ray_tracer as raytracer;
 
+use std::sync::Arc;
+use std::time::Instant;
+
 use image::{ImageBuffer, Pixel, Rgb};
-use indicatif::{ProgressBar, ProgressStyle};
+use parking_lot::Mutex;
 use rand::Rng;
-use rayon::prelude::*;
+use threadpool::ThreadPool;
 
 use raytracer::{
     light, material,
@@ -12,16 +15,10 @@ use raytracer::{
     Camera, Color,
 };
 
-const WIDTH: u64 = 1200;
-const HEIGHT: u64 = 800;
-const SAMPLE_RATE: u64 = 100;
-
-fn vec3_to_rgb(c: Color) -> Rgb<u8> {
-    let r = (255.99 * max!(0., min!(1., c.x)).sqrt()) as u8;
-    let g = (255.99 * max!(0., min!(1., c.y)).sqrt()) as u8;
-    let b = (255.99 * max!(0., min!(1., c.z)).sqrt()) as u8;
-    *Rgb::from_slice(&[r, g, b])
-}
+const WIDTH: u64 = 400;
+const HEIGHT: u64 = 300;
+const SAMPLE_RATE: u64 = 5;
+const TRACE_DEPTH: u64 = 10;
 
 fn main() {
     let mut world = World::empty();
@@ -72,33 +69,75 @@ fn main() {
         .with_aspect(WIDTH as f64 / HEIGHT as f64)
         .with_sample_rate(SAMPLE_RATE);
 
-    let mut raw = vec![(vec3!(0, 0, 0), 0); (WIDTH * HEIGHT) as usize];
-    let bar = ProgressBar::new(SAMPLE_RATE * WIDTH * HEIGHT);
-    bar.set_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:80.cyan/blue} {pos:>7}/{len:7} {eta_precise}")
-            .progress_chars("#>-"),
-    );
-    let pixels: Vec<_> = camera
-        .emit_rays(WIDTH, HEIGHT)
-        .map(|(w, h, ray)| {
-            let result = (w, h, world.trace(&ray, 10));
-            bar.inc(1);
-            result
-        })
-        .collect();
-    bar.finish_with_message("trace finished");
-    for (w, h, p) in pixels {
-        raw[(h * WIDTH + w) as usize].0 += p;
-        raw[(h * WIDTH + w) as usize].1 += 1;
+    let raw = vec![vec3!(0, 0, 0); (WIDTH * HEIGHT) as usize];
+
+    let start = Instant::now();
+
+    let pool = ThreadPool::new(num_cpus::get());
+
+    let world = Arc::new(world);
+    let raw = Arc::new(Mutex::new(raw));
+
+    for vec in chunks(128, camera.emit_rays(WIDTH, HEIGHT)) {
+        let world = world.clone();
+        let raw = raw.clone();
+        pool.execute(move || {
+            for (w, h, ray) in vec {
+                let p = world.trace(&ray, TRACE_DEPTH);
+                raw.lock()[(h * WIDTH + w) as usize] += p;
+            }
+        });
     }
 
+    pool.join();
+
+    let duration = Instant::now().duration_since(start);
+    println!(
+        "total: {} seconds, {:} ns/pixel",
+        duration.as_secs(),
+        duration.as_nanos() / (WIDTH * HEIGHT * SAMPLE_RATE) as u128
+    );
+
     let raw: Vec<_> = raw
-        .into_par_iter()
-        .map(|(pixel, count)| vec3_to_rgb(pixel / (count as f64)))
+        .lock()
+        .iter()
+        .map(|pixel| vec3_to_rgb(*pixel / SAMPLE_RATE as f64))
         .collect();
     let img = ImageBuffer::from_fn(WIDTH as u32, HEIGHT as u32, |w, h| {
         raw[(h * WIDTH as u32 + w) as usize]
     });
     img.save("test.jpg").unwrap();
 }
+
+struct Chunks<T, I: Iterator<Item=T>> {
+    size: usize,
+    iter: I,
+}
+
+impl<T, I: Iterator<Item=T>> Iterator for Chunks<T, I> {
+    type Item = Vec<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let storage: Vec<_> = (0..self.size).into_iter().filter_map(|_| self.iter.next()).collect();
+        if storage.is_empty() {
+            None
+        } else {
+            Some(storage)
+        }
+    }
+}
+
+fn chunks<T, I: Iterator<Item=T>>(size: usize, iter: I) -> Chunks<T, I> {
+    Chunks {
+        size,
+        iter,
+    }
+}
+
+fn vec3_to_rgb(c: Color) -> Rgb<u8> {
+    let r = (255.99 * max!(0., min!(1., c.x)).sqrt()) as u8;
+    let g = (255.99 * max!(0., min!(1., c.y)).sqrt()) as u8;
+    let b = (255.99 * max!(0., min!(1., c.z)).sqrt()) as u8;
+    *Rgb::from_slice(&[r, g, b])
+}
+
