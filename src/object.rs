@@ -17,8 +17,9 @@ pub trait ArcObjectExt {
 }
 
 pub struct Object {
-    pub shape: Box<Shape>,
-    pub material: Box<dyn Material>,
+    pub shape: Box<dyn Shape>,
+    pub material: Arc<dyn Material>,
+    pub moving_to: Vec3,
 }
 
 impl Object {
@@ -29,15 +30,20 @@ impl Object {
     {
         Object {
             shape: Box::new(shape),
-            material: Box::new(material),
+            material: Arc::new(material),
+            moving_to: (0.,0.,0.).into(),
         }
+    }
+
+    pub fn moving(&mut self, to: Vec3) {
+        self.moving_to = to;
     }
 }
 
 impl ArcObjectExt for Arc<Object> {
     fn hit_by(&self, ray: &Ray) -> Option<HitRecord> {
         self.shape.hit_info(ray).map(|info| HitRecord {
-            obj: self.clone(),
+            material: self.material.clone(),
             info,
         })
     }
@@ -302,7 +308,7 @@ impl World {
 
         ray.hit(self)
             .map(|hit| {
-                let m = &hit.obj.material;
+                let m = &hit.material;
                 let info = &hit.info;
                 let traced: Vec<_> = m
                     .scatter(info)

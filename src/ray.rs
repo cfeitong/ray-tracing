@@ -5,6 +5,7 @@ use rand::prelude::*;
 use crate::{
     object::{ArcObjectExt, Object, World},
     util::*,
+    Material
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -152,13 +153,13 @@ impl Camera {
 }
 
 pub struct HitRecord {
-    pub(crate) obj: Arc<Object>,
+    pub(crate) material: Arc<dyn Material>,
     pub(crate) info: HitInfo,
 }
 
 impl HitRecord {
     pub fn new(
-        obj: Arc<Object>,
+        material: Arc<dyn Material>,
         distance: f64,
         norm: Vec3,
         hit_point: Vec3,
@@ -166,7 +167,7 @@ impl HitRecord {
     ) -> HitRecord {
         let norm = norm.unit();
         HitRecord {
-            obj,
+            material,
             info: HitInfo::new(distance, norm, hit_point, dir_in),
         }
     }
@@ -183,8 +184,8 @@ impl HitRecord {
         self.info.dir_in
     }
 
-    pub fn object(&self) -> Arc<Object> {
-        self.obj.clone()
+    pub fn material(&self) -> Arc<dyn Material> {
+        self.material.clone()
     }
 
     pub fn normal(&self) -> Vec3 {
