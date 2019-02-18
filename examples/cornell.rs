@@ -2,7 +2,6 @@
 extern crate cft_ray_tracer as raytracer;
 
 use image::{ImageBuffer, Pixel, Rgb};
-use rayon::prelude::*;
 
 use raytracer::{
     light, material,

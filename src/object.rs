@@ -8,12 +8,11 @@ use crate::{
     util::{Color, Vec3, EPS},
 };
 
+use rand::Rng;
+
 pub trait Shape: Sync + Send {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo>;
-}
-
-pub trait ArcObjectExt {
-    fn hit_by(&self, ray: &Ray) -> Option<HitRecord>;
+    fn hit_moving(&self, ray: &Ray, delta: Vec3) -> Option<HitInfo>;
 }
 
 pub struct Object {
@@ -38,18 +37,24 @@ impl Object {
     pub fn moving(&mut self, to: Vec3) {
         self.moving_to = to;
     }
+
+    fn moving_delta(&self) -> Vec3 {
+        let mut rng = rand::thread_rng();
+        let t: f64 = rng.gen();
+        t * self.moving_to
+    }
 }
 
-impl ArcObjectExt for Arc<Object> {
-    fn hit_by(&self, ray: &Ray) -> Option<HitRecord> {
-        self.shape.hit_info(ray).map(|info| HitRecord {
+impl Object {
+    pub fn hit_by(&self, ray: &Ray) -> Option<HitRecord> {
+        self.shape.hit_moving(ray, self.moving_delta()).map(|info| HitRecord {
             material: self.material.clone(),
             info,
         })
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Triangle {
     pub p0: Vec3,
     pub p1: Vec3,
@@ -122,9 +127,17 @@ impl Shape for Triangle {
             None
         }
     }
+
+    fn hit_moving(&self, ray: &Ray, delta: Vec3) -> Option<HitInfo> {
+        let mut tri = self.clone();
+        tri.p0 += delta;
+        tri.p1 += delta;
+        tri.p2 += delta;
+        tri.hit_info(ray)
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Square {
     tri0: Triangle,
     tri1: Triangle,
@@ -177,9 +190,12 @@ impl Shape for Square {
     fn hit_info(&self, ray: &Ray) -> Option<HitInfo> {
         self.tri0.hit_info(ray).or(self.tri1.hit_info(ray))
     }
+    fn hit_moving(&self, ray: &Ray, delta: Vec3) -> Option<HitInfo> {
+        self.tri0.hit_moving(ray, delta).or(self.tri1.hit_moving(ray, delta))
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cube {
     pub center: Vec3,
     pub x: Vec3,
@@ -224,9 +240,20 @@ impl Shape for Cube {
                 d1.partial_cmp(&d2).unwrap_or(cmp::Ordering::Equal)
             })
     }
+
+    fn hit_moving(&self, ray: &Ray, delta: Vec3) -> Option<HitInfo> {
+        self.squares()
+            .iter()
+            .filter_map(|square| square.hit_moving(ray, delta))
+            .min_by(|r1, r2| {
+                let d1 = r1.distance();
+                let d2 = r2.distance();
+                d1.partial_cmp(&d2).unwrap_or(cmp::Ordering::Equal)
+            })
+    }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct Sphere {
     center: Vec3,
     radius: f64,
@@ -266,10 +293,16 @@ impl Shape for Sphere {
         let _dir = ray.dir() - 2. * norm_proj;
         Some(HitInfo::new(t, norm, point, ray.dir()))
     }
+
+    fn hit_moving(&self, ray: &Ray, delta: Vec3) -> Option<HitInfo> {
+        let mut sph = self.clone();
+        sph.center += delta;
+        sph.hit_info(ray)
+    }
 }
 
 pub struct World {
-    pub objects: Vec<Arc<Object>>,
+    pub objects: Vec<Object>,
     pub lights: Vec<Arc<dyn LightSource>>,
 }
 
@@ -282,7 +315,7 @@ impl World {
     }
 
     pub fn add_obj<T: Shape + 'static, M: Material + 'static>(&mut self, shape: T, material: M) {
-        self.objects.push(Arc::new(Object::new(shape, material)));
+        self.objects.push(Object::new(shape, material));
     }
 
     pub fn add_light<T: LightSource + 'static>(&mut self, light: T) {

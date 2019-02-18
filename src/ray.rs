@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rand::prelude::*;
 
 use crate::{
-    object::{ArcObjectExt, Object, World},
+    object::World,
     util::*,
     Material
 };

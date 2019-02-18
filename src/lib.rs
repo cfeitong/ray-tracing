@@ -5,7 +5,7 @@ extern crate approx;
 
 pub use light::LightSource;
 pub use material::Material;
-pub use object::{ArcObjectExt, Shape};
+pub use object::Shape;
 pub use ray::{Camera, Ray};
 pub use util::{Color, Vec3};
 
