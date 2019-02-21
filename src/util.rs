@@ -401,6 +401,38 @@ pub(crate) fn gen_point_in_disk(radius: f64) -> Vec3 {
     radius * r * vec3!(theta.cos(), theta.sin(), 0.)
 }
 
+pub trait ChunkIter<T, I: Iterator<Item=T>> {
+    fn chunks(self, size: usize) -> Chunks<T, I>;
+}
+
+impl<T, I: Iterator<Item=T>> ChunkIter<T, I> for I {
+    fn chunks(self, size: usize) -> Chunks<T, I> {
+        Chunks {
+            size,
+            iter: self,
+        }
+    }
+}
+
+pub struct Chunks<T, I: Iterator<Item=T>> {
+    size: usize,
+    iter: I,
+}
+
+impl<T, I: Iterator<Item=T>> Iterator for Chunks<T, I> {
+    type Item = Vec<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let storage: Vec<_> = (0..self.size).into_iter().filter_map(|_| self.iter.next()).collect();
+        if storage.is_empty() {
+            None
+        } else {
+            Some(storage)
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -5,7 +5,7 @@ use image::{ImageBuffer, Pixel, Rgb};
 
 use raytracer::{
     light, material,
-    object::{Cube, Sphere, Square, World},
+    object::{Object, Cube, Sphere, Square, World},
     Camera, Color, Vec3,
 };
 use std::sync::Mutex;
@@ -14,18 +14,11 @@ const WIDTH: u64 = 400;
 const HEIGHT: u64 = 300;
 const SAMPLE_RATE: u64 = 5;
 
-fn vec3_to_rgb(c: Color) -> Rgb<u8> {
-    let r = (255.99 * max!(0., min!(1., c.x))) as u8;
-    let g = (255.99 * max!(0., min!(1., c.y))) as u8;
-    let b = (255.99 * max!(0., min!(1., c.z))) as u8;
-    *Rgb::from_slice(&[r, g, b])
-}
-
 fn main() {
     let mut world = World::empty();
     let d = material::LambertianModel::new(0.8);
 
-    world.add_obj(Cube::new((0., 0., 0.), (1., 0., 0.), (0., 1., 0.), 2.), d);
+    world.add_obj(Object::new(Cube::new((0., 0., 0.), (1., 0., 0.), (0., 1., 0.), 2.), d));
     world.add_light(light::LightShape::new(Square::new(
         (0., 0., 0.99),
         (1., 0., 0.),
@@ -55,3 +48,11 @@ fn main() {
     });
     img.save("test.jpg").unwrap();
 }
+
+fn vec3_to_rgb(c: Color) -> Rgb<u8> {
+    let r = (255.99 * max!(0., min!(1., c.x)).sqrt()) as u8;
+    let g = (255.99 * max!(0., min!(1., c.y)).sqrt()) as u8;
+    let b = (255.99 * max!(0., min!(1., c.z)).sqrt()) as u8;
+    *Rgb::from_slice(&[r, g, b])
+}
+

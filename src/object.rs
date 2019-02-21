@@ -34,8 +34,9 @@ impl Object {
         }
     }
 
-    pub fn moving(&mut self, to: Vec3) {
-        self.moving_to = to;
+    pub fn moved<T: Into<Vec3>>(mut self, delta: T) -> Object {
+        self.moving_to = delta.into();
+        self
     }
 
     fn moving_delta(&self) -> Vec3 {
@@ -314,8 +315,8 @@ impl World {
         }
     }
 
-    pub fn add_obj<T: Shape + 'static, M: Material + 'static>(&mut self, shape: T, material: M) {
-        self.objects.push(Object::new(shape, material));
+    pub fn add_obj(&mut self, obj: Object) {
+        self.objects.push(obj);
     }
 
     pub fn add_light<T: LightSource + 'static>(&mut self, light: T) {

@@ -10,14 +10,15 @@ use rand::Rng;
 use threadpool::ThreadPool;
 
 use raytracer::{
-    light, material,
-    object::{Sphere, World},
     Camera, Color,
+    light,
+    material, object::{Object, Sphere, World},
+    util::ChunkIter,
 };
 
-const WIDTH: u64 = 400;
-const HEIGHT: u64 = 300;
-const SAMPLE_RATE: u64 = 5;
+const WIDTH: u64 = 800;
+const HEIGHT: u64 = 500;
+const SAMPLE_RATE: u64 = 50;
 const TRACE_DEPTH: u64 = 10;
 
 fn main() {
@@ -26,8 +27,9 @@ fn main() {
     let t = material::Dielectric::new(1.5);
     let m = material::Metal::new(0.3, 1.0);
     world.add_obj(
-        Sphere::new((0., 0., -1000.), 1000.),
-        d.with_color((0.5, 0.5, 0.5)),
+        Object::new(
+            Sphere::new((0., 0., -1000.), 1000.),
+            d.with_color((0.5, 0.5, 0.5)))
     );
     let mut rng = rand::thread_rng();
     let mut rd = || rng.gen::<f64>();
@@ -35,31 +37,39 @@ fn main() {
         for b in -11..11 {
             let center = vec3!(a as f64 + 0.9 * rd(), b as f64 + 0.9 * rd(), 0.2);
             let choose_material = rd();
-            if choose_material < 0.8 {
-                world.add_obj(
+            let obj = if choose_material < 0.8 {
+                Object::new(
                     Sphere::new(center, 0.2),
                     d.with_color((rd().powi(2), rd().powi(2), rd().powi(2))),
-                );
+                )
             } else if choose_material < 0.95 {
-                world.add_obj(
+                Object::new(
                     Sphere::new(center, 0.2),
                     m.with_color(((1. + rd()) / 2., (1. + rd()) / 2., (1. + rd()) / 2.))
                         .with_fuzz(rd() / 2.),
-                );
+                )
             } else {
-                world.add_obj(Sphere::new(center, 0.2), t);
-            }
+                Object::new(Sphere::new(center, 0.2), t)
+            };
+            let choose_move = rd();
+            let obj = if choose_move < 0.4 {
+                obj.moved((0., 0., 0.1))
+            } else {
+                obj
+            };
+            world.add_obj(obj);
         }
     }
-    world.add_obj(Sphere::new((0., 0., 1.), 1.), t);
-    world.add_obj(
+    world.add_obj(Object::new(Sphere::new((0., 0., 1.), 1.), t));
+    world.add_obj(Object::new(
         Sphere::new((-4., 0., 1.), 1.),
         d.with_color((0.4, 0.2, 0.1)),
-    );
+    ));
     world.add_obj(
-        Sphere::new((4., 0., 1.), 1.),
-        m.with_color((0.7, 0.6, 0.5)).with_fuzz(0.),
-    );
+        Object::new(
+            Sphere::new((4., 0., 1.), 1.),
+            m.with_color((0.7, 0.6, 0.5)).with_fuzz(0.),
+        ));
     world.add_light(light::SkyLight);
 
     let camera = Camera::new((13., -3., 2.), (0., 0., 0.))
@@ -78,7 +88,7 @@ fn main() {
     let world = Arc::new(world);
     let raw = Arc::new(Mutex::new(raw));
 
-    for vec in chunks(128, camera.emit_rays(WIDTH, HEIGHT)) {
+    for vec in camera.emit_rays(WIDTH, HEIGHT).chunks(128) {
         let world = world.clone();
         let raw = raw.clone();
         pool.execute(move || {
@@ -109,35 +119,11 @@ fn main() {
     img.save("test.jpg").unwrap();
 }
 
-struct Chunks<T, I: Iterator<Item=T>> {
-    size: usize,
-    iter: I,
-}
-
-impl<T, I: Iterator<Item=T>> Iterator for Chunks<T, I> {
-    type Item = Vec<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let storage: Vec<_> = (0..self.size).into_iter().filter_map(|_| self.iter.next()).collect();
-        if storage.is_empty() {
-            None
-        } else {
-            Some(storage)
-        }
-    }
-}
-
-fn chunks<T, I: Iterator<Item=T>>(size: usize, iter: I) -> Chunks<T, I> {
-    Chunks {
-        size,
-        iter,
-    }
-}
-
 fn vec3_to_rgb(c: Color) -> Rgb<u8> {
     let r = (255.99 * max!(0., min!(1., c.x)).sqrt()) as u8;
     let g = (255.99 * max!(0., min!(1., c.y)).sqrt()) as u8;
     let b = (255.99 * max!(0., min!(1., c.z)).sqrt()) as u8;
     *Rgb::from_slice(&[r, g, b])
 }
+
 
